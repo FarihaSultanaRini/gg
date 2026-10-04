@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Garments Grid planned database design: records, relationships, states and safeguards traced to the backend Markdown and pilot specification."><title>Garments Grid | Database design</title><style>*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;background:#f8f6ec;color:#203c32;font:16px/1.7 system-ui,-apple-system,Segoe UI,sans-serif}a{color:#185f4e}header{position:sticky;top:0;z-index:5;background:#f8f6ecf5;border-bottom:1px solid #ccd8cd;backdrop-filter:blur(8px)}wrap,.wrap{max-width:1180px;margin:auto;padding:0 24px}header .wrap{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-top:15px;padding-bottom:15px}.brand{font-weight:800;letter-spacing:.12em;font-size:13px}nav{display:flex;flex-wrap:wrap;gap:10px 20px}nav a{font-size:14px;text-decoration:none;font-weight:600}main{padding-bottom:60px}.hero{padding:58px 0 28px}.eyebrow{font-size:12px;font-weight:750;letter-spacing:.14em;text-transform:uppercase}h1{font-size:clamp(32px,5vw,56px);line-height:1.13;letter-spacing:-.04em;max-width:850px;margin:14px 0 20px}h2{font-size:28px;line-height:1.3;margin:0 0 14px}h3{font-size:19px;line-height:1.4;margin:6px 0 12px}p{margin:10px 0}section{margin:36px 0;scroll-margin-top:95px}.intro{max-width:860px;font-size:18px}.notice{background:#fff5ce;border:1px solid #d9c988;border-radius:12px;padding:18px 22px;margin-top:22px}.connection-flow{display:grid;gap:12px;text-align:center}.client-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.node{border:2px solid #233b34;border-radius:14px;padding:16px;background:#ffd6df}.node.backend{background:#dcecf5;max-width:720px;width:100%;margin:auto}.node.database{background:#cde8c9;max-width:720px;width:100%;margin:auto}.arrow{font-size:27px;line-height:1.2}.node small{display:block;font-size:14px}.domains,.rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.domain,.rule,.table-card{background:#fffdf6;border:1px solid #ccd8cd;border-radius:14px;padding:22px;min-width:0}.domain-no{font-size:12px;color:#5f7367;font-weight:700}.domain{scroll-margin-top:95px}.table-wrap{overflow-x:auto;max-width:100%}table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;background:#edf1e7;font-size:12px;letter-spacing:.02em}th,td{padding:12px 14px;border-bottom:1px solid #dce2d4;vertical-align:top;min-width:130px}details{margin-top:16px;border-top:1px solid #d4ddce;padding-top:12px}summary{cursor:pointer;font-weight:650}summary:focus-visible,a:focus-visible{outline:3px solid #a06535;outline-offset:4px}.domain table{min-width:640px}code{font-size:.88em;background:#edf1e7;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}ol{padding-left:24px}li{margin:10px 0}footer{padding:22px 0;border-top:1px solid #ccd8cd;color:#506557;font-size:14px}@media(max-width:680px){header .wrap{display:block}.brand{margin-bottom:8px}.wrap{padding:0 16px}.hero{padding-top:32px}.client-grid,.domains,.rules{grid-template-columns:1fr}.domain,.rule,.table-card{padding:18px}nav{gap:8px 14px}.source-grid{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{header{position:static}nav{display:none}body{background:white}details{display:block}.domains,.rules{display:block}.domain,.rule{break-inside:avoid;margin-bottom:14px}}
+.trace-ref{font-size:12px!important;line-height:1.65!important;margin:12px 0 0!important;text-align:left;overflow-wrap:anywhere}.trace-ref span{font-weight:700}.trace-ref a{color:#195c4c;text-decoration:underline;text-underline-offset:2px}.source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}.source-entry{border:1px solid #ccd8cd;border-radius:12px;padding:16px;background:#fffdf5;scroll-margin-top:100px}.source-entry h3{margin:0 0 8px}.source-entry p{margin:8px 0}.source-entry code{overflow-wrap:anywhere;white-space:normal;font-size:12px}.source-sections{font-size:13px;color:#435d52}.requirement-list{margin:16px 0}.requirement{padding:12px 0;border-bottom:1px solid #ccd8cd;scroll-margin-top:100px}.requirement dt{font-weight:700}.requirement dd{margin:6px 0;font-size:14px;line-height:1.65}.sources{scroll-margin-top:100px}@media(max-width:560px){.source-grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><div class="wrap"><div class="brand">GARMENTS GRID</div><nav aria-label="Guide navigation"><a href="index.html">Order guide</a><a href="admin.html">Admin portal</a><a href="#connections">Connections</a><a href="#domains">Records</a><a href="#lifecycle">Order states</a><a href="#rules">Safety rules</a><a href="#sources">Sources</a></nav></div></header>
+<main class="wrap"><div class="hero"><div class="eyebrow">Database design guide</div><h1>How the backend records fit together</h1><p class="intro">The Customer app, Partner app and staff workspace use the same backend. The backend checks each request and owns the records in one logical PostgreSQL database.</p><div class="notice"><strong>Planned logical design.</strong> The names below come from <code>docs/architecture/data-model.md</code>. They describe records and their responsibilities. Final table names, columns, foreign keys, the physical schema, Prisma migrations and the data dictionary are separate deliverables.</div></div>
+<section id="connections"><h2>How all three clients reach the records</h2><div class="connection-flow" aria-label="Customer app, Partner app and staff workspace call the backend; only the backend accesses PostgreSQL"><div class="client-grid"><div class="node"><b>Customer app</b><small>Own profile, booking and order</small></div><div class="node"><b>Partner app</b><small>Approved Driver / Workshop modules</small></div><div class="node"><b>Staff workspace</b><small>Allowed cases and staff actions</small></div></div><div class="arrow" aria-hidden="true">&#8595;</div><div class="node backend"><b>Secured APIs + NestJS backend</b><small>Authenticate, authorize, validate state/evidence and handle safe retries</small></div><div class="arrow" aria-hidden="true">&#8595;</div><div class="node database"><b>One logical PostgreSQL database</b><small>Each domain owns its records. Prisma migrations own schema changes.</small></div></div><p class="trace-ref"><span>Spec:</span> <a href="#spec-OPS-012">OPS-012</a>; <a href="#spec-API-010">API-010</a>; <a href="#spec-API-002">API-002</a>; <a href="#spec-ARC-001">ARC-001</a>; <a href="#spec-DAT-008">DAT-008</a><br><span>MD:</span> <a href="#md-stack">tech-stack.md Framework; Database; Schema &amp; migrations</a>; <a href="#md-access">access-control.md sections 4, 7</a>; <a href="#md-data">data-model.md section 2</a></p><p>Photos and documents live in private object storage. The database keeps their references and access metadata; the backend provides permitted, time-limited access.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-COC-007">COC-007</a>; <a href="#spec-SEC-007">SEC-007</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.11</a>; <a href="#md-stack">tech-stack.md Media storage</a></p></section>
+<section id="relationships"><h2>The main record connections</h2><p>Read each row as: the record on the left connects to the records in the middle for the purpose on the right. These are logical links from the design, rather than a finished foreign-key schema.</p><div class="table-card table-wrap"><table><thead><tr><th>Starting record</th><th>Related records</th><th>Why they connect</th><th>MD section</th></tr></thead><tbody><tr><td><b>User</b></td><td>CustomerProfile + PartnerProfile + RoleGrant</td><td>The account identifies the person. Profile and approved grants decide which app/module data they can use.</td><td>data-model.md 3.1-3.3</td></tr><tr><td><b>CustomerProfile</b></td><td>Order + saved snapshots</td><td>A customer can place orders. Each placed order keeps its own address, service, price, schedule and consent snapshots.</td><td>data-model.md 3.2, 3.5, 7</td></tr><tr><td><b>Order</b></td><td>Offer + Assignment + CapacityReservation</td><td>Matching records offers and assigns one active workshop to the order. Reservations prevent overbooking.</td><td>data-model.md 3.6</td></tr><tr><td><b>Order</b></td><td>TransportLeg + Route + Stop</td><td>The order needs outbound and return transport. One route can contain stops from several orders, and the return leg may use a different driver.</td><td>data-model.md 3.7</td></tr><tr><td><b>Order</b></td><td>Manifest + BagLabelIdentity + CustodyEvent</td><td>The driver records pickup measurements. The order has one canonical bag QR; each print and accepted custody handoff has its own history record.</td><td>data-model.md 3.8, 6</td></tr><tr><td><b>Order</b></td><td>CustomerLedgerEntry + FinalCharge</td><td>The ledger records the calculation before the gateway charge. Exactly one final charge belongs to an order; later authorized adjustments are separate records.</td><td>data-model.md 3.9, 5</td></tr><tr><td><b>Order / incident</b></td><td>SupportCase + Issue + ClaimDecision</td><td>A report or qualifying incident creates a case. Staff decisions link evidence and any approved compensation; original order/custody facts remain available.</td><td>data-model.md 3.10</td></tr><tr><td><b>Accepted command</b></td><td>AuditEvent + OutboxMessage + Job</td><td>Sensitive changes carry an audit record. Durable outbox/jobs make notifications and integration work retryable.</td><td>data-model.md 3.11, 5</td></tr></tbody></table></div><p class="trace-ref"><span>Spec:</span> <a href="#spec-DAT-003">DAT-003</a>; <a href="#spec-DAT-005">DAT-005</a>; <a href="#spec-COC-003">COC-003</a>; <a href="#spec-PAY-003">PAY-003</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 3.1-3.11, 5-7</a></p></section>
+<section id="domains"><h2>Eleven groups of records</h2><p>A domain is a group of related responsibilities. Each backend module owns its records and rules. Open a card to read the planned entities from the Markdown design.</p><div class="domains"><article class="domain" id="domain-1"><div class="domain-no">01</div><h3>Identity</h3><p>Who is signed in, which roles they have, and whether their session is still valid.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-OPS-001">OPS-001</a>; <a href="#spec-SEC-003">SEC-003</a>; <a href="#spec-SEC-004">SEC-004</a>; <a href="#spec-PAR-001">PAR-001</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.1</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User</td>
+<td>Account identity, contact verification state, lifecycle (invited/active/suspended/deactivated/deletion-pending)</td>
+<td>Invitation-only pilot</td>
+</tr>
+<tr>
+<td>RoleGrant</td>
+<td>Role (Customer, Driver, Service Provider, Staff Operator, System Automation), staff sub-role, city scope, validity window</td>
+<td>Server-side RBAC (SEC-004); partner module grants drive PAR-001</td>
+</tr>
+<tr>
+<td>Session/Device</td>
+<td>Session token lineage, device, expiry, revocation</td>
+<td>Secure rotation/revocation (SEC-003)</td>
+</tr>
+<tr>
+<td>Invitation</td>
+<td>Invited actor, role, status, expiry</td>
+<td>Partner accounts are staff-created only (PAR-002)</td>
+</tr>
+<tr>
+<td>Verification</td>
+<td>Phone/email verification evidence</td>
+<td>Method per <code>[PENDING: D-004]</code> (CUS-002)</td>
+</tr>
+<tr>
+<td>Consent</td>
+<td>Document type, version, language, timestamp, actor</td>
+<td>Versioned Terms/Privacy/disclaimer acceptance (PRV-006, CUS-012)</td>
+</tr>
+<tr>
+<td>PrivacyRequest</td>
+<td>Access/correction/deletion request, state, lawful-exception record</td>
+<td>PRV-007, PRV-008</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-2"><div class="domain-no">02</div><h3>Customer</h3><p>The customer profile and verified home address. An order saves its own address copy.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-CUS-002">CUS-002</a>; <a href="#spec-DAT-003">DAT-003</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.2</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CustomerProfile</td>
+<td>First/last name, email, phone (CUS-001)</td>
+<td>Phone is a restricted field; see <code>docs/architecture/access-control.md</code></td>
+</tr>
+<tr>
+<td>VerifiedAddress</td>
+<td>One active verified home address; geocode + serviceability evidence; superseded versions retained</td>
+<td>Exactly one active address in pilot (CUS-002; FUT-04 defers multiple addresses)</td>
+</tr>
+<tr>
+<td>PickupInstruction</td>
+<td>Configured instruction (front entrance, back entrance, ring doorbell, …) plus optional short access note</td>
+<td>CUS-008</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-3"><div class="domain-no">03</div><h3>Partner</h3><p>One partner account with approved Driver, Workshop or both modules, plus review decisions and operational capability.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-PAR-001">PAR-001</a>; <a href="#spec-PAR-002">PAR-002</a>; <a href="#spec-OPS-004">OPS-004</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.3</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PartnerProfile</td>
+<td>One partner account; Driver and/or Service Provider module grants</td>
+<td>Modules displayed only for approved grants (PAR-001)</td>
+</tr>
+<tr>
+<td>SecureFormSubmission / EvidenceReference</td>
+<td>Submission status and references to evidence collected outside the app via the approved secure form <code>[PENDING: D-006]</code></td>
+<td>Sensitive documents separated from operational records (PRV-005); staff access strictly limited (FIN-007)</td>
+</tr>
+<tr>
+<td>StaffDecision</td>
+<td>Review outcome: create/activate, correction request, rejection, suspension, deactivation - with reason, actor, timestamp</td>
+<td>OPS-004, PAR-002</td>
+</tr>
+<tr>
+<td>Capability</td>
+<td>Services offered; vehicle/handling capability; folding always included in every capability</td>
+<td>SPV-001, DRV-001</td>
+</tr>
+<tr>
+<td>Availability</td>
+<td>Working status, availability windows, available/unavailable toggle, start location/zone</td>
+<td>DRV-001, SPV-001</td>
+</tr>
+<tr>
+<td>DailyCapacity</td>
+<td>Maximum daily capacity as order count or canonical weight, mode per city configuration <code>[PENDING: D-008]</code></td>
+<td>SPV-001; Capacity Semantics</td>
+</tr>
+<tr>
+<td>Vehicle / Workshop</td>
+<td>Vehicle capacity unit <code>[PENDING: D-008]</code>; workshop equipment/inspection evidence references</td>
+<td>DRV-001; OPS-004</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-4"><div class="domain-no">04</div><h3>City/config</h3><p>Service areas, opening hours, slots, prices and versioned rules. Approved values remain configuration.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-OPS-002">OPS-002</a>; <a href="#spec-OPS-003">OPS-003</a>; <a href="#spec-CFG-003">CFG-003</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.4</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>City</td>
+<td>Launch city, time zone, residency-relevant attributes <code>[PENDING: D-001]</code></td>
+<td>Multi-city-ready; one city operated in pilot (FUT-08)</td>
+</tr>
+<tr>
+<td>ServiceZone</td>
+<td>Zone geometry/travel limits used by booking and matching <code>[PENDING: D-002]</code></td>
+<td>CUS-003, OPS-002</td>
+</tr>
+<tr>
+<td>OperatingCalendar</td>
+<td>Operating days/hours, holidays, provider receiving hours <code>[PENDING: D-002]</code></td>
+<td>OPS-002</td>
+</tr>
+<tr>
+<td>Slot</td>
+<td>Customer-selectable four-hour window with controlled capacity</td>
+<td>CUS-007; Capacity Semantics</td>
+</tr>
+<tr>
+<td>ServiceDefinition</td>
+<td>The three services; inclusion text; folding mandatory</td>
+<td>CUS-005</td>
+</tr>
+<tr>
+<td>PricingConfig / TaxConfig / PayoutConfig / RoutingConfig</td>
+<td>Effective-dated retail minimums/rates, delivery fee, tax treatment, payout rates, route earning components, solver/routing parameters</td>
+<td>OPS-002/003; values <code>[PENDING: D-003, D-009, D-010, D-012]</code>; no financial rate hard-coded</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-5"><div class="domain-no">05</div><h3>Order</h3><p>The booking, current status, selected service, schedule and saved pricing details.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-ORD-001">ORD-001</a>; <a href="#spec-ORD-002">ORD-002</a>; <a href="#spec-DAT-003">DAT-003</a>; <a href="#spec-PAY-005">PAY-005</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.5</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Order</td>
+<td>Aggregate root; current state; financial sub-status; customer-safe status projection</td>
+<td>Sole state authority is the backend (ORD §4)</td>
+</tr>
+<tr>
+<td>ServiceSnapshot</td>
+<td>Selected service, inclusions</td>
+<td>One service per order; never split across providers</td>
+</tr>
+<tr>
+<td>Schedule</td>
+<td>Pickup and delivery four-hour windows satisfying the 48-hour promise</td>
+<td>CUS-007</td>
+</tr>
+<tr>
+<td>OrderPriceSnapshot</td>
+<td>Currency, tax-inclusive display amount, tax amount and rule version, price components, rounding method, customer-visible explanation</td>
+<td>PAY-005, DAT-003</td>
+</tr>
+<tr>
+<td>IroningGarmentRecord / PhotoRef</td>
+<td>Full Service catalog: one photo record per garment selected for ironing; captions; server receipt timestamp</td>
+<td>CUS-006; relationship preserved through processing (SPV-009); no second physical garment-label scheme</td>
+</tr>
+<tr>
+<td>StatusEvent</td>
+<td>Append-only transition log: order, event type, prior/new state, actor, role, UTC timestamp, correlation ID, evidence references</td>
+<td>ORD-002</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-6"><div class="domain-no">06</div><h3>Matching</h3><p>Which partners were checked, offers sent, accepted assignments and capacity reserved.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-MAT-003">MAT-003</a>; <a href="#spec-MAT-008">MAT-008</a>; <a href="#spec-DAT-005">DAT-005</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.6</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MatchRun</td>
+<td>Scheduled run: input version, candidate set, rule results, exclusion reasons, distance order/tie-break, offer sequence, outcome, configuration version</td>
+<td>MAT-009; deterministic rules (MAT-002); tie-breaker <code>[PENDING: D-010]</code></td>
+</tr>
+<tr>
+<td>Offer</td>
+<td>Exclusive, expiring provider assignment offer or whole-route driver offer; response history</td>
+<td>MAT-003, MAT-006; timeouts <code>[PENDING: D-007]</code></td>
+</tr>
+<tr>
+<td>Assignment</td>
+<td>Provider assignment to order; route ownership by driver</td>
+<td>One active provider assignment per order; one active route owner per route (DAT-005)</td>
+</tr>
+<tr>
+<td>CapacityReservation</td>
+<td>Owner, quantity, start/end, expiry, source order/route, release reason</td>
+<td>Oversubscription prevented transactionally; released on decline/timeout/cancellation/deactivation/override and reconciled by a scheduled integrity job (MAT-008)</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-7"><div class="domain-no">07</div><h3>Logistics</h3><p>Outbound and return transport, routes, route versions and ordered stops.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-RTE-003">RTE-003</a>; <a href="#spec-RTE-007">RTE-007</a>; <a href="#spec-RTE-009">RTE-009</a>; <a href="#spec-DRV-005">DRV-005</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.7</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TransportLeg</td>
+<td>Outbound (customer collection → provider drop-off) and return (provider pickup → customer delivery) chains</td>
+<td>Each chain may use a different driver</td>
+</tr>
+<tr>
+<td>Route</td>
+<td>Ordered, accepted city trip; may mix collections and completed deliveries</td>
+<td>Locked at driver start (RTE-009, DRV-005); no automatic post-departure insertion (FUT-01)</td>
+</tr>
+<tr>
+<td>RouteVersion</td>
+<td>Versioned plan: solver/input versions, cutoff, jobs, constraints, objective result, runtime, unassigned reasons</td>
+<td>RTE-007; emergency changes preserve both versions (RTE-010)</td>
+</tr>
+<tr>
+<td>Stop</td>
+<td>Typed stop (customer collection, provider drop-off, provider pickup, customer delivery) with window, precedence, service time</td>
+<td>RTE-003</td>
+</tr>
+<tr>
+<td>JobConstraint</td>
+<td>Precedence, time windows, capacity, driver availability, provider readiness</td>
+<td>RTE-003</td>
+</tr>
+<tr>
+<td>StatusMilestone</td>
+<td>Customer-visible Route started / Driver approaching / Completed only</td>
+<td>RTE-011, MSG-004; no continuous ETA or live map (FUT-02)</td>
+</tr>
+<tr>
+<td>LocationEvidence</td>
+<td>Stop GPS/delivery coordinates with device context</td>
+<td>DRV-012; collection limited to active-route purposes (PRV-004)</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-8"><div class="domain-no">08</div><h3>Custody</h3><p>Pickup manifest, original counts, bag QR, handoff scans, incidents and delivery proof.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-DRV-006">DRV-006</a>; <a href="#spec-DRV-007">DRV-007</a>; <a href="#spec-OPS-006">OPS-006</a>; <a href="#spec-COC-003">COC-003</a>; <a href="#spec-COC-005">COC-005</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.8</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Manifest</td>
+<td>Digital manifest: service, garment count, authoritative driver pickup weight, ironing reconciliation, exceptions, bag location</td>
+<td>DRV-006</td>
+</tr>
+<tr>
+<td>ManifestItem / Summary</td>
+<td>Count and weight components; provider intake count and optional operational weight</td>
+<td>Driver weight is financially authoritative (DRV-007); provider weight is operational evidence only (SPV-006)</td>
+</tr>
+<tr>
+<td>BagLabelIdentity</td>
+<td>One canonical order-level QR identity per order</td>
+<td>COC-003; model in §7</td>
+</tr>
+<tr>
+<td>LabelPrint</td>
+<td>Print history: printer/device, actor, reason, timestamp</td>
+<td>COC-003</td>
+</tr>
+<tr>
+<td>CustodyEvent</td>
+<td>From/to custodian, route/stop when applicable, scan result, UTC server time, device-reported time, location when permitted</td>
+<td>COC-005; append-only (DAT-007)</td>
+</tr>
+<tr>
+<td>DeliveryProof</td>
+<td>Photo, GPS coordinates, timestamp, stop completion</td>
+<td>DRV-012, ORD-007; private storage, restricted visibility (COC-007)</td>
+</tr>
+<tr>
+<td>Incident</td>
+<td>Inaccessible pickup, missing bag, prohibited item, contact failure, vehicle issue, route delay, QR failure, delivery failure</td>
+<td>DRV-016</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-9"><div class="domain-no">09</div><h3>Finance</h3><p>Payment validation, one final charge, adjustments, subscription entitlement and partner earnings.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-PAY-003">PAY-003</a>; <a href="#spec-PAY-007">PAY-007</a>; <a href="#spec-PAY-010">PAY-010</a>; <a href="#spec-SUB-004">SUB-004</a>; <a href="#spec-FIN-003">FIN-003</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.9</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CustomerLedgerEntry</td>
+<td>Append-only ledger: estimate, final charge, refund/correction, claim payout, write-off</td>
+<td>PAY-007, PAY-010, CLM-005</td>
+</tr>
+<tr>
+<td>PaymentMethodValidation</td>
+<td>Booking-time validation result, gateway reference</td>
+<td>No charge at booking (PAY-003)</td>
+</tr>
+<tr>
+<td>FinalCharge</td>
+<td>Exactly one charge per order, executed with an order-specific idempotency key</td>
+<td>PAY-003</td>
+</tr>
+<tr>
+<td>Refund / Correction</td>
+<td>Staff-initiated only; actor, reason, source order, gateway reference, ledger entries</td>
+<td>PAY-010; never an automatic second charge after a count discrepancy</td>
+</tr>
+<tr>
+<td>SubscriptionEntitlement</td>
+<td>Active/inactive only; gateway subscription reference, effective timestamp, last verified timestamp</td>
+<td>SUB-004; billing lifecycle stays in the gateway</td>
+</tr>
+<tr>
+<td>PartnerEarningEntry</td>
+<td>Append-only subledger: estimated, earned, adjusted, paid, reversed, disputed</td>
+<td>FIN-002, FIN-003; a completed stop qualifies exactly once (FIN-004)</td>
+</tr>
+<tr>
+<td>PayoutExport</td>
+<td>Weekly CSV record: payout date, method, reference, included entries, total, operator</td>
+<td>FIN-005; manual cadence (FIN-006; rates <code>[PENDING: D-012]</code>)</td>
+</tr>
+<tr>
+<td>TaxSnapshot</td>
+<td>Tax amount, rule version, rounding method</td>
+<td>PAY-005; tax rules <code>[PENDING: D-003]</code></td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-10"><div class="domain-no">10</div><h3>Engagement</h3><p>Notifications, predefined messages, reported issues, support cases and claim decisions.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-MSG-001">MSG-001</a>; <a href="#spec-CLM-001">CLM-001</a>; <a href="#spec-CLM-004">CLM-004</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.10</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Notification</td>
+<td>In-app inbox record; push dispatch state</td>
+<td>MSG-001; outbox-driven, deduplicated, staff-observable (MSG-003)</td>
+</tr>
+<tr>
+<td>DeviceToken</td>
+<td>APNs/FCM registration per device</td>
+<td>MSG-001</td>
+</tr>
+<tr>
+<td>PredefinedMessageEvent</td>
+<td>Template ID, sender, server timestamp, delivery status, order/leg context, immutable audit reference</td>
+<td>MSG-005, MSG-008; no free-form chat</td>
+</tr>
+<tr>
+<td>CustomerPhoneAccessEvent / DirectCallEvent</td>
+<td>Reveal and dialer-launch audit metadata; no call audio or content</td>
+<td>MSG-007, MSG-008, DRV-014</td>
+</tr>
+<tr>
+<td>Issue / Evidence</td>
+<td>Report-an-issue submission: category, description, optional evidence</td>
+<td>CLM-001, CUS-018</td>
+</tr>
+<tr>
+<td>ClaimDecision</td>
+<td>Approved amount by garment, reason, explanation, decision-maker, timestamps, payout/refund reference</td>
+<td>CLM-004; caps CAD 50 per garment / CAD 200 combined per order (CLM-002)</td>
+</tr>
+<tr>
+<td>SupportCase</td>
+<td>Staff case tying issue, evidence, decisions, contact notes</td>
+<td>Opened by a Report-an-issue submission (CLM-001) or by a driver <code>contact_failure</code> incident, which also ends the customer-contact window (MSG-009); case access per CLM-003; internal notes staff-only (CLM-007)</td>
+</tr>
+</tbody>
+</table></div></details></article><article class="domain" id="domain-11"><div class="domain-no">11</div><h3>Platform</h3><p>Safe retry records, jobs, outbox events, callback receipts, audit events and private media references.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-API-003">API-003</a>; <a href="#spec-API-006">API-006</a>; <a href="#spec-DAT-007">DAT-007</a>; <a href="#spec-ARC-005">ARC-005</a>; <a href="#spec-SEC-007">SEC-007</a><br><span>MD:</span> <a href="#md-data">data-model.md section 3.11</a></p><details><summary>See the planned records</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Content</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OutboxMessage</td>
+<td>Durable domain-event outbox driving notifications and integration side effects</td>
+<td>MSG-003</td>
+</tr>
+<tr>
+<td>Job</td>
+<td>Durable background job record (pg-boss): retry with backoff, dead-letter, idempotency, correlation ID, health metrics</td>
+<td>ARC-005, ORD-009</td>
+</tr>
+<tr>
+<td>WebhookReceipt</td>
+<td>Signature-verification result, payload hash, dedup key, processing state</td>
+<td>API-006, PAY-008</td>
+</tr>
+<tr>
+<td>IdempotencyReservation</td>
+<td><code>key</code>, <code>actor_id</code>, <code>command_name</code>, <code>request_hash</code>, <code>status</code> (IN_FLIGHT / COMPLETED), <code>response_payload</code>, <code>created_at</code>, <code>expires_at</code></td>
+<td>API-003; race semantics in <code>docs/architecture/api-design.md</code> §7; retention baseline 7 days, configurable, reconciled with the retention matrix <code>[PENDING: D-019]</code></td>
+</tr>
+<tr>
+<td>AuditEvent</td>
+<td>Append-only audit: custody scans, phone reveals, staff actions, config changes, break-glass</td>
+<td>DAT-007, OPS-011, PAR-006</td>
+</tr>
+<tr>
+<td>FeatureFlag</td>
+<td>Effective-dated flags</td>
+<td>OPS-002, CFG-001</td>
+</tr>
+<tr>
+<td>ConfigurationChange</td>
+<td>Before/after values, actor, reason, approval for config mutations</td>
+<td>CFG-002; second-person approval SHOULD apply to high-risk financial/routing changes</td>
+</tr>
+<tr>
+<td>MediaObject</td>
+<td>Private object-storage reference, purpose, access class, retention class</td>
+<td>COC-007, SEC-007</td>
+</tr>
+</tbody>
+</table></div></details></article></div></section>
+<section id="lifecycle"><h2>Order status and payment status are separate</h2><p>The order status describes the laundry journey. Payment status describes money. A failed charge must remain visible as a payment exception; it must not invent a successful payment or erase custody facts. Processing/delivery hold policy is still pending under D-013.</p><div class="table-card table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">State</th>
+<th style="text-align: left;">Primary actor</th>
+<th style="text-align: left;">Entry meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">DRAFT</td>
+<td style="text-align: left;">Customer</td>
+<td style="text-align: left;">Incomplete booking; no order number and no charge.</td>
+</tr>
+<tr>
+<td style="text-align: left;">PLACED</td>
+<td style="text-align: left;">Customer / system</td>
+<td style="text-align: left;">Terms accepted; payment method validated without charge; immutable pricing/consent snapshots created.</td>
+</tr>
+<tr>
+<td style="text-align: left;">PROVIDER_MATCHING</td>
+<td style="text-align: left;">System</td>
+<td style="text-align: left;">Sequential eligible-provider offers in progress.</td>
+</tr>
+<tr>
+<td style="text-align: left;">PROVIDER_ASSIGNED</td>
+<td style="text-align: left;">Provider</td>
+<td style="text-align: left;">Provider accepted and capacity is reserved.</td>
+</tr>
+<tr>
+<td style="text-align: left;">PICKUP_ROUTED</td>
+<td style="text-align: left;">Dispatch system</td>
+<td style="text-align: left;">Outbound transport jobs are locked into an offered/accepted route.</td>
+</tr>
+<tr>
+<td style="text-align: left;">COLLECTED</td>
+<td style="text-align: left;">Driver</td>
+<td style="text-align: left;">Bag opened as authorized; manifest, pickup weight/count, and active QR recorded.</td>
+</tr>
+<tr>
+<td style="text-align: left;">AT_PROVIDER</td>
+<td style="text-align: left;">Provider</td>
+<td style="text-align: left;">Provider scanned the same QR and recorded intake verification.</td>
+</tr>
+<tr>
+<td style="text-align: left;">COUNT_DISCREPANCY</td>
+<td style="text-align: left;">System / staff</td>
+<td style="text-align: left;">Driver/provider counts differ; processing is blocked pending audited resolution.</td>
+</tr>
+<tr>
+<td style="text-align: left;">PROCESSING</td>
+<td style="text-align: left;">Provider</td>
+<td style="text-align: left;">Provider has begun the selected service.</td>
+</tr>
+<tr>
+<td style="text-align: left;">READY_FOR_RETURN</td>
+<td style="text-align: left;">Provider</td>
+<td style="text-align: left;">Quality check complete; new bag carries reprinted same QR.</td>
+</tr>
+<tr>
+<td style="text-align: left;">RETURN_ROUTED</td>
+<td style="text-align: left;">Dispatch system</td>
+<td style="text-align: left;">Provider pickup and customer delivery jobs are on an accepted route.</td>
+</tr>
+<tr>
+<td style="text-align: left;">OUT_FOR_DELIVERY</td>
+<td style="text-align: left;">Driver</td>
+<td style="text-align: left;">Return driver has scanned and taken custody of the processed bag.</td>
+</tr>
+<tr>
+<td style="text-align: left;">DELIVERED</td>
+<td style="text-align: left;">Driver</td>
+<td style="text-align: left;">Photo, GPS, timestamp, and stop completion evidence accepted.</td>
+</tr>
+<tr>
+<td style="text-align: left;">COMPLETED</td>
+<td style="text-align: left;">System</td>
+<td style="text-align: left;">Delivery and financial reconciliation completed; post-order support remains available.</td>
+</tr>
+<tr>
+<td style="text-align: left;">CANCELLED</td>
+<td style="text-align: left;">Customer / staff</td>
+<td style="text-align: left;">Terminal operational state with reason and financial disposition.</td>
+</tr>
+</tbody>
+</table></div><p class="trace-ref"><span>Spec:</span> <a href="#spec-ORD-001">ORD-001</a>; <a href="#spec-ORD-002">ORD-002</a>; <a href="#spec-ORD-005">ORD-005</a>; <a href="#spec-ORD-006">ORD-006</a>; <a href="#spec-ORD-007">ORD-007</a>; <a href="#spec-ORD-008">ORD-008</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 4.1-4.4</a></p><details><summary>See the planned payment sub-statuses</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Sub-status</th>
+<th style="text-align: left;">Meaning</th>
+<th style="text-align: left;">Set by</th>
+<th style="text-align: left;">Refs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">NONE</td>
+<td style="text-align: left;">No financial artifact (draft)</td>
+<td style="text-align: left;">System</td>
+<td style="text-align: left;">-</td>
+</tr>
+<tr>
+<td style="text-align: left;">METHOD_VALIDATED</td>
+<td style="text-align: left;">Payment method validated at booking; no charge taken</td>
+<td style="text-align: left;">System</td>
+<td style="text-align: left;">PAY-003, CUS-011</td>
+</tr>
+<tr>
+<td style="text-align: left;">METHOD_VALIDATION_FAILED</td>
+<td style="text-align: left;">Booking validation failed; order cannot be placed</td>
+<td style="text-align: left;">System</td>
+<td style="text-align: left;">OPS-007</td>
+</tr>
+<tr>
+<td style="text-align: left;">CHARGE_PENDING</td>
+<td style="text-align: left;">Collection completed; final price calculated from snapshots and posted to the ledger; charge not yet confirmed</td>
+<td style="text-align: left;">System</td>
+<td style="text-align: left;">PAY-007</td>
+</tr>
+<tr>
+<td style="text-align: left;">CHARGED</td>
+<td style="text-align: left;">The one final charge confirmed by the gateway</td>
+<td style="text-align: left;">System (webhook)</td>
+<td style="text-align: left;">PAY-003, PAY-008</td>
+</tr>
+<tr>
+<td style="text-align: left;">SETTLED</td>
+<td style="text-align: left;">Settlement reconciled against gateway references</td>
+<td style="text-align: left;">System (reconciliation job)</td>
+<td style="text-align: left;">PAY-008</td>
+</tr>
+<tr>
+<td style="text-align: left;">CHARGE_FAILED</td>
+<td style="text-align: left;">Final charge failed; <strong>never represented as paid</strong>; enters the staff payment queue</td>
+<td style="text-align: left;">System</td>
+<td style="text-align: left;">PAY-009; policy <code>[PENDING: D-013]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">REFUND_PENDING / REFUNDED</td>
+<td style="text-align: left;">Staff-initiated refund/correction in flight / completed (partial or full)</td>
+<td style="text-align: left;">Staff / System</td>
+<td style="text-align: left;">PAY-010</td>
+</tr>
+<tr>
+<td style="text-align: left;">CORRECTION_POSTED</td>
+<td style="text-align: left;">Documented staff correction posted as compensating ledger entry</td>
+<td style="text-align: left;">Staff</td>
+<td style="text-align: left;">PAY-010, ORD-010</td>
+</tr>
+<tr>
+<td style="text-align: left;">WRITE_OFF</td>
+<td style="text-align: left;">Approved write-off per policy</td>
+<td style="text-align: left;">Staff</td>
+<td style="text-align: left;">PAY-010; <code>[PENDING: D-013]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">RECONCILED</td>
+<td style="text-align: left;">Order-level finance reconciled; precondition for COMPLETED</td>
+<td style="text-align: left;">System</td>
+<td style="text-align: left;">Pilot success measures</td>
+</tr>
+</tbody>
+</table></div></details><p>The design derives its transition map from the specification. Staff recovery transitions marked as inferred in <code>data-model.md</code> still need client confirmation. Draft expiry/cleanup policy is also pending; a draft has no order number or charge.</p></section>
+<section id="snapshots"><h2>What the backend keeps as a saved snapshot</h2><p>A snapshot is the saved version used for that order or accepted work. Later changes to prices, addresses or configuration must not rewrite those historical facts. The timing for each snapshot follows the Markdown inventory below.</p><details><summary>See what is saved and when</summary><div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Snapshot</th>
+<th style="text-align: left;">Frozen at</th>
+<th style="text-align: left;">Contents</th>
+<th style="text-align: left;">Why</th>
+<th style="text-align: left;">Refs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Address</td>
+<td style="text-align: left;">PLACED</td>
+<td style="text-align: left;">Verified address + geocode + zone</td>
+<td style="text-align: left;">Delivery must survive later profile edits</td>
+<td style="text-align: left;">DAT-003</td>
+</tr>
+<tr>
+<td style="text-align: left;">Service + schedule</td>
+<td style="text-align: left;">PLACED</td>
+<td style="text-align: left;">Selected service, inclusions, both four-hour windows, 48 h promise basis</td>
+<td style="text-align: left;">Dispute-proof scope</td>
+<td style="text-align: left;">CUS-005/007</td>
+</tr>
+<tr>
+<td style="text-align: left;">Price components</td>
+<td style="text-align: left;">PLACED</td>
+<td style="text-align: left;">Minimum, weight rate, garment rate, delivery fee rule, currency</td>
+<td style="text-align: left;">Estimate floor and final-charge floor</td>
+<td style="text-align: left;">PAY-005; pricing <code>[PENDING: D-003]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Tax</td>
+<td style="text-align: left;">PLACED</td>
+<td style="text-align: left;">Tax amount, rule version, rounding method, tax-inclusive presentation</td>
+<td style="text-align: left;">Invoice legality; replay</td>
+<td style="text-align: left;">PAY-005; tax rules <code>[PENDING: D-003]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Consents</td>
+<td style="text-align: left;">PLACED</td>
+<td style="text-align: left;">Terms/Privacy/disclaimer/restriction versions, language, timestamp, actor</td>
+<td style="text-align: left;">Legal evidence</td>
+<td style="text-align: left;">CUS-012, PRV-006</td>
+</tr>
+<tr>
+<td style="text-align: left;">Config versions</td>
+<td style="text-align: left;">PLACED and per calculation</td>
+<td style="text-align: left;">Pricing/tax/capacity/routing configuration versions used</td>
+<td style="text-align: left;">Historical reproducibility</td>
+<td style="text-align: left;">CFG-003</td>
+</tr>
+<tr>
+<td style="text-align: left;">Entitlement decision</td>
+<td style="text-align: left;">Final charge</td>
+<td style="text-align: left;">Active/inactive entitlement, entitlement and rate versions, fee-waiver outcome</td>
+<td style="text-align: left;">Fee decision reproducible after expiry</td>
+<td style="text-align: left;">SUB-002, SUB-007</td>
+</tr>
+<tr>
+<td style="text-align: left;">Provider payout inputs</td>
+<td style="text-align: left;">Offer acceptance</td>
+<td style="text-align: left;">Payout rates/units/effective dates</td>
+<td style="text-align: left;">Earning snapshots on accepted work</td>
+<td style="text-align: left;">FIN-001; rates <code>[PENDING: D-012]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;">Driver route earning inputs</td>
+<td style="text-align: left;">Route acceptance</td>
+<td style="text-align: left;">Base route fee, planned distance, stop components</td>
+<td style="text-align: left;">Accepted calculation frozen for audit</td>
+<td style="text-align: left;">RTE-008</td>
+</tr>
+<tr>
+<td style="text-align: left;">Manifest</td>
+<td style="text-align: left;">COLLECTED</td>
+<td style="text-align: left;">Authoritative weight, pickup count, ironing reconciliation, instruction outcome</td>
+<td style="text-align: left;">Billing basis; immutable evidence</td>
+<td style="text-align: left;">DRV-006/007</td>
+</tr>
+<tr>
+<td style="text-align: left;">Discrepancy values</td>
+<td style="text-align: left;">Discrepancy / resolution</td>
+<td style="text-align: left;">Driver count, provider count, confirmed count, reason, evidence, resolver</td>
+<td style="text-align: left;">Both originals immutable</td>
+<td style="text-align: left;">SPV-005, OPS-006</td>
+</tr>
+</tbody>
+</table></div></details><p class="trace-ref"><span>Spec:</span> <a href="#spec-DAT-003">DAT-003</a>; <a href="#spec-PAY-005">PAY-005</a>; <a href="#spec-CFG-003">CFG-003</a>; <a href="#spec-SUB-007">SUB-007</a>; <a href="#spec-OPS-006">OPS-006</a><br><span>MD:</span> <a href="#md-data">data-model.md section 7</a></p></section>
+<section id="rules"><h2>Rules the database and backend must enforce</h2><div class="rules"><article class="rule"><h3>Keep the original order facts</h3><p>Changing a customer address or a current price must not rewrite a placed order. Read its saved snapshots for historical calculations.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-DAT-003">DAT-003</a>; <a href="#spec-PAY-005">PAY-005</a>; <a href="#spec-CFG-003">CFG-003</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 5 E-1, 7</a>; <a href="#md-access">access-control.md sections 4, 7</a></p></article><article class="rule"><h3>Do not assign twice</h3><p>Two simultaneous acceptances must not create two active workshops for an order or two owners for one route. Assignment and capacity checks commit together.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-DAT-005">DAT-005</a>; <a href="#spec-MAT-003">MAT-003</a>; <a href="#spec-MAT-007">MAT-007</a>; <a href="#spec-MAT-008">MAT-008</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 3.6, 5 E-3/E-7</a>; <a href="#md-access">access-control.md sections 4, 7</a></p></article><article class="rule"><h3>Do not charge twice</h3><p>Record the final calculation before calling the gateway. Use the same business-operation key for retries. A timeout is an uncertain result to reconcile, not proof that a second charge is safe.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-PAY-003">PAY-003</a>; <a href="#spec-PAY-007">PAY-007</a>; <a href="#spec-PAY-008">PAY-008</a>; <a href="#spec-API-003">API-003</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 3.9, 5 E-4</a>; <a href="#md-access">access-control.md sections 4, 7</a></p></article><article class="rule"><h3>A mismatch keeps both counts</h3><p>Save the driver count and workshop count. Staff adds the confirmed count, reason, evidence, customer impact, identity and time; processing also needs the workshop custody scan.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-OPS-006">OPS-006</a>; <a href="#spec-SPV-005">SPV-005</a>; <a href="#spec-ORD-005">ORD-005</a>; <a href="#spec-PAY-010">PAY-010</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 3.8, 4.2, 7</a>; <a href="#md-access">access-control.md sections 4, 7</a></p></article><article class="rule"><h3>Preserve history</h3><p>Audit, ledger and custody records are append-only for application actors. Corrections add linked records. Lawful privacy processing uses the separately controlled retention mechanism; it must preserve financial amounts and event facts.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-DAT-007">DAT-007</a>; <a href="#spec-ORD-010">ORD-010</a>; <a href="#spec-FIN-003">FIN-003</a>; <a href="#spec-PRV-007">PRV-007</a>; <a href="#spec-PRV-008">PRV-008</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 5 E-2, 8</a>; <a href="#md-access">access-control.md sections 4, 7</a></p></article><article class="rule"><h3>Use safe units</h3><p>Store money in integer minor units with a currency code and timestamps in UTC. Use one precision-safe weight unit; integer grams is the proposed baseline pending design review.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-DAT-001">DAT-001</a>; <a href="#spec-DAT-002">DAT-002</a>; <a href="#spec-PAY-006">PAY-006</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 2, 5 E-5</a>; <a href="#md-access">access-control.md sections 4, 7</a></p></article><article class="rule"><h3>Protect access</h3><p>Apps and the low-code workspace request data through APIs. Backend checks role, city, record, fields and action. An order ID or QR alone never grants permission.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-OPS-012">OPS-012</a>; <a href="#spec-API-010">API-010</a>; <a href="#spec-API-002">API-002</a>; <a href="#spec-SEC-004">SEC-004</a><br><span>MD:</span> <a href="#md-data">data-model.md sections 2, 3.1, 6</a>; <a href="#md-access">access-control.md sections 4, 7</a></p></article></div></section>
+<section id="build"><h2>What still needs to be built</h2><ol><li><strong>Physical schema and data dictionary:</strong> choose exact tables, columns, types, relationships and constraints that satisfy this logical design.</li><li><strong>Prisma migrations:</strong> implement one controlled schema-change path, including any required raw-SQL indexes or geospatial support.</li><li><strong>Seed and configuration instructions:</strong> use approved configuration. Required pending decisions must be resolved for launch.</li><li><strong>Verification:</strong> check fresh installation, upgrades, concurrent assignments, safe retries, one final charge, immutable history, permissions and lawful retention behavior.</li></ol><p>City/time zone and residency remain D-001; identity D-004; payment gateway D-005; capacity D-008; retention D-019. The source design also flags draft cleanup, weight-unit review and staff recovery transitions for confirmation.</p><p class="trace-ref"><span>Spec:</span> <a href="#spec-DAT-008">DAT-008</a>; <a href="#spec-NFR-007">NFR-007</a>; <a href="#spec-API-003">API-003</a>; <a href="#spec-DAT-005">DAT-005</a>; <a href="#spec-DAT-007">DAT-007</a><br><span>MD:</span> <a href="#md-stack">tech-stack.md Database; Schema &amp; migrations</a>; <a href="#md-data">data-model.md sections 2, 5, 8-9</a>; <a href="#md-testing">testing-strategy.md sections 4, 7, 10</a></p></section>
+<section id="sources" class="sources"><h2>Source references</h2><p>Spec IDs below refer to the Garments Grid v1.1 pilot requirements in <code>Copy of Garments Grid v0.1.docx</code>. Markdown references point to the backend repository at <code>G:\market-os\garments-grid-api</code>. Click a reference beside a rule to find its source here.</p>
+<div class="source-grid"><div class="source-entry" id="md-stack"><h3>tech-stack.md</h3><p><code>garments-grid-api/specs/tech-stack.md</code></p><p>Approved technology choices and the rules every backend module follows.</p><p class="source-sections">Read: Locked stack; Contract ownership; Invariants.</p></div><div class="source-entry" id="md-access"><h3>access-control.md</h3><p><code>garments-grid-api/docs/architecture/access-control.md</code></p><p>Who may view or change each record. The two staff sub-roles are a proposed design awaiting client confirmation.</p><p class="source-sections">Read: 2. Roles and grants; 3. RBAC matrix; 4. Scope dimensions; 6. Staff access controls; 8. Audit requirements.</p></div><div class="source-entry" id="md-api"><h3>api-design.md</h3><p><code>garments-grid-api/docs/architecture/api-design.md</code></p><p>Planned API calls and safe retries. The final hand-authored OpenAPI contract defines exact requests and responses.</p><p class="source-sections">Read: 4.1-4.7 Endpoint inventory; 5. Contract rules; 7. Command pattern and idempotency.</p></div><div class="source-entry" id="md-data"><h3>data-model.md</h3><p><code>garments-grid-api/docs/architecture/data-model.md</code></p><p>Logical database design: planned records, states, history and saved snapshots. Physical schema, Prisma migrations and the data dictionary are separate deliverables.</p><p class="source-sections">Read: 3. Domains; 4. Order lifecycle; 5. Critical enforcement; 6. Custody QR model; 7. Snapshot inventory; 8. Retention matrix outline; 9. Assumptions and open items.</p></div><div class="source-entry" id="md-integrations"><h3>integrations.md</h3><p><code>garments-grid-api/docs/architecture/integrations.md</code></p><p>How the backend connects to payment, maps, notifications, the solver and the staff workspace.</p><p class="source-sections">Read: 2. Payment gateway; 3. Maps / travel-time matrix; 5. OR-Tools route-solver worker; 6. Low-code operations platform; 7. Secure partner-evidence form intake; 9. Cross-cutting integration requirements.</p></div><div class="source-entry" id="md-security"><h3>security-compliance.md</h3><p><code>garments-grid-api/docs/architecture/security-compliance.md</code></p><p>Authentication, privacy, trust boundaries and protected audit history.</p><p class="source-sections">Read: 3. Privacy and PIPEDA fair-information mapping; 5. Threat model skeleton; 6. Audit logging design.</p></div><div class="source-entry" id="md-testing"><h3>testing-strategy.md</h3><p><code>garments-grid-api/docs/architecture/testing-strategy.md</code></p><p>Checks for permissions, duplicate actions, money, custody and safe recovery.</p><p class="source-sections">Read: 3. Contract tests; 4. Integration tests; 7. Security and privacy tests; 9. UAT traceability; 10. Data-integrity checks.</p></div><div class="source-entry" id="md-mission"><h3>mission.md</h3><p><code>garments-grid-api/specs/mission.md</code></p><p>The backend is the system of record for the Customer app, the Partner app and the staff workspace.</p><p class="source-sections">Read: Purpose; Pilot scope (what the product is).</p></div></div>
+<details id="spec-baseline"><summary>Read the cited specification requirements</summary><p>These are the source requirements. Architecture proposals and pending decisions are labelled separately above.</p><dl class="requirement-list"><div id="spec-API-002" class="requirement"><dt>API-002</dt><dd>APIs SHALL use authenticated subject/role context and object-level authorization; resource identifiers alone SHALL never grant access.</dd></div><div id="spec-API-003" class="requirement"><dt>API-003</dt><dd>Create, payment, assignment, scan, state, and staff mutation endpoints SHALL accept idempotency keys and return a stable outcome for safe retries.</dd></div><div id="spec-API-006" class="requirement"><dt>API-006</dt><dd>External callbacks SHALL require signature verification or equivalent authentication, replay protection, timestamp tolerance, deduplication, and asynchronous processing.</dd></div><div id="spec-API-010" class="requirement"><dt>API-010</dt><dd>No mobile or low-code client SHALL contain privileged service credentials or connect directly to the primary database.</dd></div><div id="spec-ARC-001" class="requirement"><dt>ARC-001</dt><dd>Domain modules SHALL own their rules and data access boundaries even if deployed together; cross-module changes SHALL use explicit service interfaces and transactions/events.</dd></div><div id="spec-ARC-005" class="requirement"><dt>ARC-005</dt><dd>Background processing SHALL support retry with backoff, dead-letter/exception handling, idempotency, correlation IDs, and health metrics.</dd></div><div id="spec-CFG-003" class="requirement"><dt>CFG-003</dt><dd>Orders, routes, assignments, and ledger calculations SHALL retain the configuration version used so historical behavior is reproducible.</dd></div><div id="spec-CLM-001" class="requirement"><dt>CLM-001</dt><dd>A customer SHALL be able to submit a simple Report an issue form against a delivered order with issue category, description, and optional evidence. The form SHALL create a staff case; it need not implement a customer-facing claim workflow.</dd></div><div id="spec-CLM-004" class="requirement"><dt>CLM-004</dt><dd>Staff SHALL record the claim decision in the low-code workspace, including approved amount by garment, reason, explanation, decision-maker, timestamps, and payout/refund reference.</dd></div><div id="spec-COC-003" class="requirement"><dt>COC-003</dt><dd>The system SHALL maintain one canonical bag-label identity per order and a separate print history with printer/device, actor, reason, and timestamp.</dd></div><div id="spec-COC-005" class="requirement"><dt>COC-005</dt><dd>Each custody event SHALL include from/to custodian, route/stop when applicable, scan result, UTC server time, device-reported time, and location when permission is available.</dd></div><div id="spec-COC-007" class="requirement"><dt>COC-007</dt><dd>Garment catalog images SHALL use private object storage and time-limited access; delivery proof images SHALL be visible only to the relevant customer and authorized staff.</dd></div><div id="spec-CUS-002" class="requirement"><dt>CUS-002</dt><dd>The system SHALL verify the phone/email as selected in discovery and SHALL validate/geocode the home address before first order.</dd></div><div id="spec-DAT-001" class="requirement"><dt>DAT-001</dt><dd>All operational timestamps SHALL be stored in UTC with source/device context where relevant and rendered in the configured city time zone.</dd></div><div id="spec-DAT-002" class="requirement"><dt>DAT-002</dt><dd>All amounts SHALL use integer minor units and currency code; all billable/capacity weights SHALL use one canonical precision-safe internal unit with explicit conversions.</dd></div><div id="spec-DAT-003" class="requirement"><dt>DAT-003</dt><dd>Every order SHALL retain snapshots of address, service, prices, tax, payout inputs, windows, terms/consents, and relevant configuration versions.</dd></div><div id="spec-DAT-005" class="requirement"><dt>DAT-005</dt><dd>Relational constraints and transactional locks SHALL enforce one active provider assignment, one active route owner, valid capacity reservation, and unique idempotent financial/custody events.</dd></div><div id="spec-DAT-007" class="requirement"><dt>DAT-007</dt><dd>Audit, ledger, and custody history SHALL be append-only for application actors; corrections SHALL reference superseded values through new events.</dd></div><div id="spec-DAT-008" class="requirement"><dt>DAT-008</dt><dd>The vendor SHALL deliver a logical data model, physical schema/migrations, data dictionary, retention matrix, and seed/configuration instructions.</dd></div><div id="spec-DRV-005" class="requirement"><dt>DRV-005</dt><dd>The pilot route SHALL lock when the driver starts it. Staff MAY apply an audited emergency override; the solver SHALL NOT automatically insert new stops after departure.</dd></div><div id="spec-DRV-006" class="requirement"><dt>DRV-006</dt><dd>At customer pickup, the driver SHALL open the unattended bag as authorized, count garments, record pickup weight, reconcile Full Service ironing photos, create the digital manifest, and report prohibited/unsafe items.</dd></div><div id="spec-DRV-007" class="requirement"><dt>DRV-007</dt><dd>The driver&#x27;s recorded pickup weight SHALL be the authoritative billing weight. Any later provider weight variance SHALL be logged without changing the customer charge.</dd></div><div id="spec-FIN-003" class="requirement"><dt>FIN-003</dt><dd>Partner financial records SHALL use an append-only subledger; corrections SHALL use adjustment entries with reason and authorized actor.</dd></div><div id="spec-MAT-003" class="requirement"><dt>MAT-003</dt><dd>The system SHALL send an exclusive, expiring provider offer to one candidate at a time and atomically reserve capacity only upon valid acceptance.</dd></div><div id="spec-MAT-007" class="requirement"><dt>MAT-007</dt><dd>Matching commands and offer responses SHALL use transactional concurrency control so late responses cannot overwrite a newer assignment.</dd></div><div id="spec-MAT-008" class="requirement"><dt>MAT-008</dt><dd>Capacity reservations SHALL be released on decline, timeout, cancellation, deactivation, or approved override and SHALL be reconciled by a scheduled integrity job.</dd></div><div id="spec-MSG-001" class="requirement"><dt>MSG-001</dt><dd>The pilot SHALL support in-app notification inbox and push notifications. SMS and transactional email are outside scope.</dd></div><div id="spec-NFR-007" class="requirement"><dt>NFR-007</dt><dd>Recovery</dd></div><div id="spec-OPS-001" class="requirement"><dt>OPS-001</dt><dd>Staff access SHALL use named accounts, least-privilege roles, strong authentication, session expiry, and immediate revocation. Shared operator accounts are prohibited.</dd></div><div id="spec-OPS-002" class="requirement"><dt>OPS-002</dt><dd>Authorized staff SHALL configure cities, service zones, operating calendars, four-hour slot capacity, display weight unit, tax treatment, service capabilities, and feature flags with effective dates.</dd></div><div id="spec-OPS-003" class="requirement"><dt>OPS-003</dt><dd>Authorized staff SHALL configure customer prices, minimum charges, delivery fees, subscription price/benefit, provider payout rates, and driver route earning components without a software deployment.</dd></div><div id="spec-OPS-004" class="requirement"><dt>OPS-004</dt><dd>Staff SHALL review invited driver/provider submissions collected through an approved secure form, including evidence, training status, and compliance checklist; create and activate approved accounts or record correction, rejection, suspension, or deactivation with a reason.</dd></div><div id="spec-OPS-006" class="requirement"><dt>OPS-006</dt><dd>Staff SHALL resolve a count discrepancy by recording the confirmed count, reason, evidence references, customer impact, resolver, and timestamp. Original driver and provider values SHALL remain immutable.</dd></div><div id="spec-OPS-012" class="requirement"><dt>OPS-012</dt><dd>The low-code tool SHALL consume documented APIs and event feeds; direct database connections and embedded production credentials are prohibited.</dd></div><div id="spec-ORD-001" class="requirement"><dt>ORD-001</dt><dd>Every state-changing command SHALL be idempotent and reject stale or unauthorized transitions without losing the attempted action from security/diagnostic logs.</dd></div><div id="spec-ORD-002" class="requirement"><dt>ORD-002</dt><dd>Every accepted transition SHALL append an immutable event containing order, event type, prior/new state, actor, role, UTC timestamp, correlation ID, and relevant evidence references.</dd></div><div id="spec-ORD-005" class="requirement"><dt>ORD-005</dt><dd>An order SHALL NOT enter PROCESSING while a count discrepancy is unresolved or required provider custody scan is absent.</dd></div><div id="spec-ORD-006" class="requirement"><dt>ORD-006</dt><dd>An order SHALL NOT enter READY_FOR_RETURN until service completion, quality check, clean-bag repack, and same-QR reprint are recorded.</dd></div><div id="spec-ORD-007" class="requirement"><dt>ORD-007</dt><dd>An order SHALL NOT enter DELIVERED until the required photo, GPS, timestamp, and route-stop evidence are durably stored.</dd></div><div id="spec-ORD-008" class="requirement"><dt>ORD-008</dt><dd>Financial sub-statuses SHALL track payment-method validation, final charge, settlement, refund/correction, and exception independently from physical order state.</dd></div><div id="spec-ORD-010" class="requirement"><dt>ORD-010</dt><dd>Staff correction SHALL create a compensating event; production history SHALL never be rewritten to conceal an earlier value.</dd></div><div id="spec-PAR-001" class="requirement"><dt>PAR-001</dt><dd>The Partner app SHALL display only the module(s) for which the signed-in partner has been manually approved.</dd></div><div id="spec-PAR-002" class="requirement"><dt>PAR-002</dt><dd>Partner applications and documents SHALL be collected outside the app through an approved secure form. After staff review, approved accounts SHALL be created and activated by staff; the app SHALL support first sign-in and suspended/inactive states only.</dd></div><div id="spec-PAY-003" class="requirement"><dt>PAY-003</dt><dd>Successful booking SHALL validate and save the payment method without charging it. After the driver completes pickup weight and count, the system SHALL make the final charge exactly once using an order-specific idempotency key.</dd></div><div id="spec-PAY-005" class="requirement"><dt>PAY-005</dt><dd>Every order SHALL store immutable snapshots of currency, tax-inclusive display amount, tax amount/rule version, price components, rounding method, and customer-visible explanation.</dd></div><div id="spec-PAY-006" class="requirement"><dt>PAY-006</dt><dd>All money SHALL be stored as integer minor units with explicit ISO currency code. Floating-point arithmetic is prohibited for financial calculations.</dd></div><div id="spec-PAY-007" class="requirement"><dt>PAY-007</dt><dd>The final charge calculation SHALL be deterministic, replayable from snapshots, and posted to an append-only customer ledger before invoking the gateway.</dd></div><div id="spec-PAY-008" class="requirement"><dt>PAY-008</dt><dd>Gateway webhooks SHALL be signature-verified, deduplicated, processed asynchronously, and reconciled against internal payment intent/status; webhook order SHALL NOT be assumed.</dd></div><div id="spec-PAY-010" class="requirement"><dt>PAY-010</dt><dd>Staff-initiated refunds/corrections, reversals, disputes, goodwill credits, and write-offs SHALL retain actor/reason, source order, gateway reference, and ledger entries; no automatic second charge follows a provider count discrepancy.</dd></div><div id="spec-PRV-007" class="requirement"><dt>PRV-007</dt><dd>Users SHALL be able to initiate access, correction, and account-deletion requests in-app. Deletion SHALL remove or de-identify data not subject to a documented legal/security retention exception.</dd></div><div id="spec-PRV-008" class="requirement"><dt>PRV-008</dt><dd>The product SHALL explain what cannot be immediately deleted, why, and the retention period; backups SHALL follow a documented expiry process rather than ad hoc deletion.</dd></div><div id="spec-RTE-003" class="requirement"><dt>RTE-003</dt><dd>The solver SHALL support pickup-and-delivery precedence, four-hour time windows, driver/vehicle capacity, driver availability, route start/end policy, service time, travel time, and provider readiness/receiving hours.</dd></div><div id="spec-RTE-007" class="requirement"><dt>RTE-007</dt><dd>Every saved plan SHALL be versioned with solver/input versions, cutoff, jobs, constraints, objective result, runtime, and unassigned reasons.</dd></div><div id="spec-RTE-009" class="requirement"><dt>RTE-009</dt><dd>A route SHALL lock at driver start. The pilot SHALL NOT automatically insert or reorder stops after departure; this is the first deferred feature if scope pressure occurs.</dd></div><div id="spec-SEC-003" class="requirement"><dt>SEC-003</dt><dd>Staff SHALL use multi-factor authentication. Customer/partner authentication and recovery methods are TBD but SHALL include verified contact, brute-force protection, secure session rotation, revocation, and suspicious-login handling.</dd></div><div id="spec-SEC-004" class="requirement"><dt>SEC-004</dt><dd>Authorization SHALL be deny-by-default and enforced at API, object, field, action, and city/assignment scope. The vendor SHALL test cross-role and cross-order access systematically.</dd></div><div id="spec-SEC-007" class="requirement"><dt>SEC-007</dt><dd>Uploads SHALL enforce authenticated purpose, type/size limits, malware/content checks appropriate to risk, metadata handling, private storage, and time-limited download authorization.</dd></div><div id="spec-SPV-005" class="requirement"><dt>SPV-005</dt><dd>A count mismatch SHALL pause the order in COUNT_DISCREPANCY. Processing SHALL remain blocked until the count is reconciled or staff records an audited resolution.</dd></div><div id="spec-SUB-004" class="requirement"><dt>SUB-004</dt><dd>The Garments Grid entitlement SHALL have only active and inactive states, with gateway subscription reference, effective timestamp, and last verified timestamp. Detailed billing lifecycle states remain in the payment gateway.</dd></div><div id="spec-SUB-007" class="requirement"><dt>SUB-007</dt><dd>The order&#x27;s delivery-fee decision SHALL remain historically reproducible even if the subscription later expires or rules change.</dd></div></dl></details></section></main><footer><div class="wrap">An explanatory design guide based on the backend Markdown and the v1.1 pilot specification.</div></footer>
+<script>(()=>{function revealReference(){const id=decodeURIComponent(location.hash.slice(1));const target=id&&document.getElementById(id);if(!target)return;let parent=target.parentElement;while(parent){if(parent.tagName==='DETAILS')parent.open=true;parent=parent.parentElement;}target.scrollIntoView();}window.addEventListener('hashchange',revealReference);if(location.hash)requestAnimationFrame(revealReference);})();</script></body></html>
