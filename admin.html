@@ -120,7 +120,7 @@ details{background:white;border:1px solid var(--line);border-radius:14px;margin-
 <div class="stack-item"><b>PostgreSQL + Prisma</b>Backend records; Prisma owns schema migrations. Clients use APIs.</div>
 <div class="stack-item"><b>pg-boss + outbox</b>Durable matching, payment, notification and reconciliation jobs.</div>
 <div class="stack-item"><b>Identity provider</b>Staff MFA and short-lived sessions. Customer/partner method remains D-004.</div>
-<div class="stack-item"><b>OpenAPI 3.1.0</b>Tooling target for the hand-authored shared contract. Listed paths are planning paths.</div>
+<div class="stack-item"><b>OpenAPI 3.1.0</b>The OpenAPI file defines the shared API contract. Listed paths are planning paths.<p><strong>API testing: Postman or Bruno.</strong> Import the OpenAPI file and send requests to a test backend. Check responses, staff permissions and safe retries.</p><p>Automated backend tests use Jest + Supertest.</p><p class="refs"><a href="https://learning.postman.com/docs/integrations/available-integrations/working-with-openAPI/">Postman import guide</a> &middot; <a href="https://github.com/usebruno/bruno/blob/main/packages/bruno-cli/readme.md">Bruno import/testing guide</a></p></div>
 <div class="stack-item"><b>Python + OR-Tools</b>Private FastAPI route solver called by backend jobs; separate from navigation.</div>
 <div class="stack-item"><b>Private media</b>Encrypted storage; backend-authorized signed URLs for uploads and viewing.</div>
 </div>
