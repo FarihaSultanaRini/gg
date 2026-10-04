@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Garments Grid — How admin manages the apps</title>
+<style>
+:root{--ink:#163c3b;--muted:#546967;--paper:#f7f8f3;--line:#d4dfd7;--pink:#ffcfda;--green:#c2edc2;--yellow:#fff5ac;--blue:#deeffa}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+a{color:#08685e;text-underline-offset:4px}button{font:inherit}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #ad4700;outline-offset:5px}
+header{background:#123d39;color:white}header .wrap{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-top:18px;padding-bottom:18px}header a{color:white;text-decoration:none;font-size:14px}header nav{display:flex;gap:24px;flex-wrap:wrap}.brand{font-weight:750;letter-spacing:.04em}.wrap{max-width:1180px;padding:0 28px;margin:auto}
+.hero{padding:62px 0 44px}.eyebrow{font-size:13px;letter-spacing:.11em;text-transform:uppercase;font-weight:750;color:#637669}h1{font-size:clamp(36px,5vw,60px);line-height:1.13;letter-spacing:-.04em;max-width:900px;margin:14px 0 22px}h2{font-size:32px;line-height:1.2;letter-spacing:-.025em;margin:0 0 12px}h3{line-height:1.3}.lead{font-size:21px;max-width:840px;margin:0}.highlight{display:inline-block;padding:6px 12px;background:#e4ecdf;border-radius:7px;font-size:14px;margin-top:22px}
+section{margin-bottom:52px}.section-head{margin-bottom:24px;max-width:920px}.section-head p{margin:0;color:var(--muted)}.card{background:white;border:1px solid var(--line);border-radius:18px;padding:28px}.note{padding:18px 22px;border-left:4px solid #408871;background:#edf3e9;border-radius:0 12px 12px 0}.note p{margin:0}
+.flow{background:white;border:1px solid var(--line);border-radius:20px;padding:30px 22px}.flow-caption{font-size:14px;color:var(--muted);text-align:center;margin:0 0 24px}
+.flow-row{display:grid;grid-template-columns:minmax(130px,1fr) minmax(260px,500px) minmax(130px,1fr);align-items:center;gap:20px}.flow-node{grid-column:2;text-align:center;border:2px solid #233b34;border-radius:15px;padding:16px 20px;background:var(--green)}.flow-node strong{display:block;font-size:20px}.flow-node p{font-size:15px;line-height:1.5;margin:6px 0 0}.pink{background:var(--pink)}.blue{background:var(--blue)}
+.flow-arrow{text-align:center;color:#253b33;line-height:1;padding:8px 0;font-size:25px}.flow-arrow small{display:block;font-size:12px;margin-bottom:5px;color:var(--muted)}
+.choice-row{max-width:910px;margin:auto}.choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;padding:0}.choices .flow-node{grid-column:auto;padding:16px 12px}.choices .flow-node strong{font-size:18px}.choices .flow-node p{font-size:14px}.choice-top-bus{height:20px;border-top:2px solid #233b34;margin:0 calc((100% - 40px)/6)}.choices .flow-node{position:relative}.choices .flow-node:before,.choices .flow-node:after{content:"";position:absolute;left:50%;height:20px;border-left:2px solid #233b34}.choices .flow-node:before{top:-22px}.choices .flow-node:after{bottom:-22px}
+.bus{height:23px;border-top:2px solid #233b34;margin:18px 15% 0;position:relative}.bus:after{content:"";height:23px;border-left:2px solid #233b34;position:absolute;left:50%;top:0}
+.decision{grid-column:2;position:relative;height:170px;display:flex;align-items:center;justify-content:center;text-align:center}.decision svg{position:absolute;inset:0;width:100%;height:100%}.decision-text{position:relative;max-width:65%;font-weight:750;font-size:21px;line-height:1.3}
+.denied{grid-column:3;border:2px solid #233b34;background:var(--pink);border-radius:14px;padding:14px;font-size:14px;position:relative}.denied:before{content:"No →";position:absolute;left:-62px;top:45%;font-size:14px;background:white}.denied strong{display:block;font-size:17px}
+.success-label{text-align:center;font-weight:700;font-size:13px}.result-row{max-width:960px;margin:0 auto}.app-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.result-card{background:#f0f6ed;border:1px solid var(--line);border-radius:13px;padding:18px;text-align:center}.result-card strong{display:block}.result-card p{font-size:14px;margin:5px 0 0}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}.tab{border:1px solid #9aafa0;background:white;color:var(--ink);border-radius:30px;padding:11px 24px;cursor:pointer;font-weight:650}.tab[aria-selected="true"]{background:var(--ink);color:white;border-color:var(--ink)}[hidden]{display:none!important}
+.panel-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.panel-grid h3{margin:0 0 8px;font-size:19px}.panel-grid p{margin:0}.panel-grid ul{padding-left:22px;margin:10px 0}.tag{font-size:12px;text-transform:uppercase;letter-spacing:.05em;background:#edf3e9;display:inline-block;padding:4px 9px;border-radius:5px;font-weight:700}
+.example{margin-top:24px;padding:22px;background:#f1f5ee;border:1px solid #d3e0cf;border-radius:14px}.example h3{margin:0 0 12px;font-size:20px}.story{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.story-step{border-top:3px solid #739b79;padding-top:10px;font-size:15px}.story-step b{display:block;margin-bottom:4px}.api{display:block;font:14px/1.7 ui-monospace,Consolas,monospace;overflow-wrap:anywhere;margin-top:12px;background:#f3f5f2;padding:12px;border-radius:7px}.refs{font-size:13px;color:var(--muted);margin-top:18px}
+.more-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.more-grid .card{padding:22px}.more-grid h3{font-size:19px;margin:0 0 8px}.more-grid p{font-size:15px;margin:0}
+.table-wrap{overflow:auto;max-width:100%}table{width:100%;border-collapse:collapse;font-size:15px}th,td{text-align:left;padding:14px 12px;border-bottom:1px solid var(--line);vertical-align:top}th{background:#eff4e9;color:#24473a}td code,th code{white-space:normal;overflow-wrap:anywhere;font-size:13px}td:first-child{font-weight:600}
+details{background:white;border:1px solid var(--line);border-radius:14px;margin-top:18px;padding:18px 22px}summary{cursor:pointer;font-weight:700}details[open] summary{margin-bottom:18px}.reference-content{font-size:15px}.reference-content h3{font-size:22px;margin:26px 0 12px}.reference-content h4{font-size:18px}.reference-content p{max-width:1000px}.reference-content table{min-width:700px}
+.stack-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stack-item{background:white;border:1px solid var(--line);padding:18px;border-radius:12px;font-size:14px}.stack-item b{display:block;font-size:17px;margin-bottom:4px}
+.sources{font-size:14px}.sources ul{padding-left:22px}footer{background:#e8eee2;padding:24px 0;font-size:14px}footer p{margin:0}.pending{color:#725012;font-size:14px}
+@media(max-width:850px){.flow-row{grid-template-columns:minmax(0,1fr) minmax(0,4fr) minmax(0,1fr);gap:8px}.denied{grid-column:2;margin-top:8px;text-align:center}.denied:before{position:static;display:block;content:"No: access denied";font-weight:700}.flow-node,.decision{grid-column:2}.choices,.app-results{gap:10px}.panel-grid{grid-template-columns:1fr}.story{grid-template-columns:1fr 1fr}.more-grid{grid-template-columns:1fr 1fr}.stack-grid{grid-template-columns:1fr 1fr}header .wrap{align-items:flex-start}header nav{gap:12px}}
+@media(max-width:560px){body{font-size:16px}.wrap{padding:0 16px}.hero{padding-top:34px}.lead{font-size:18px}h2{font-size:27px}.flow{padding:22px 10px}.flow-row{display:block}.flow-node{margin:0 auto;max-width:500px}.decision{max-width:500px;margin:auto;height:150px}.denied{max-width:500px;margin:8px auto 0}.decision-text{font-size:18px}.choices,.app-results,.story,.more-grid{grid-template-columns:1fr}.bus,.choice-top-bus{display:none}.choices .flow-node:before,.choices .flow-node:after{display:none}.choices{gap:10px}.app-results{gap:10px}.choices .flow-node{width:100%}.card{padding:20px}header .wrap{display:block}header nav{margin-top:8px}.stack-grid{gap:8px}.stack-item{padding:12px}.tabs{gap:8px}.tab{padding:9px 16px;font-size:15px}.highlight{line-height:1.5}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{header nav,.tabs{display:none}.wrap{max-width:none}body{background:white}.hero{padding-top:24px}details,section{break-inside:avoid}.tab-panel[hidden]{display:block!important}.card{margin-top:12px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div class="brand">GARMENTS GRID</div><nav aria-label="Page navigation"><a href="#access">Access flow</a><a href="#manage">Manage the apps</a><a href="#permissions">Permissions</a><a href="#technology">Stack &amp; APIs</a></nav></div></header>
+<main class="wrap">
+<div class="hero"><div class="eyebrow">Admin workspace guide</div><h1>How admin manages<br>all the GG apps</h1><p class="lead">Staff signs into one low-code workspace. It uses the GG backend to view customer, driver and workshop records and carry out permitted actions.</p><div class="highlight">Admin workspace → secured staff API → GG backend → updated app records</div></div>
+<section id="access" aria-labelledby="access-heading">
+<div class="section-head"><h2 id="access-heading">How admin gets access</h2><p>Admin uses their own staff account. Access to a record or action depends on their permissions.</p></div>
+<div class="flow" aria-label="Flowchart showing staff sign-in, management area selection, backend authorization and app updates">
+<p class="flow-caption">Pink: staff workspace · Yellow: permission check · Blue: backend · Green: allowed result</p>
+<div class="flow-row"><div class="flow-node pink"><strong>1. Staff signs in with MFA</strong><p>The identity provider verifies the named account and issues a short-lived staff session. Expired or revoked sessions must sign in again.</p></div></div>
+<div class="flow-arrow">↓</div>
+<div class="flow-row"><div class="flow-node pink"><strong>2. Open the low-code workspace</strong><p>Choose a management area. The account’s permissions determine what the workspace can request.</p></div></div>
+<div class="flow-arrow">↓</div>
+<div class="choice-row"><div class="choice-top-bus" aria-hidden="true"></div><div class="choices">
+<div class="flow-node pink"><strong>Customers &amp; orders</strong><p>Find an order, review an issue or handle an authorized privacy request.</p></div>
+<div class="flow-node pink"><strong>Drivers</strong><p>Review/activate accounts, inspect assignments and manage route exceptions.</p></div>
+<div class="flow-node pink"><strong>Workshops</strong><p>Review/activate accounts, inspect assignments and resolve count exceptions.</p></div>
+</div><div class="bus" aria-hidden="true"></div></div>
+<div class="flow-arrow"><small>View a record or submit a staff action</small>↓</div>
+<div class="flow-row"><div class="flow-node blue"><strong>3. Send a secured staff API request</strong><p>The workspace calls <code>/v1/ops/**</code> using the staff session. For a change, include the record ID, required reason/evidence and a safe retry key.</p></div></div>
+<div class="flow-arrow">↓</div>
+<div class="flow-row"><div class="decision"><svg viewBox="0 0 500 170" preserveAspectRatio="none" aria-hidden="true"><polygon points="250,3 496,85 250,167 4,85" fill="#fff5ac" stroke="#233b34" stroke-width="2"/></svg><div class="decision-text">4. Does the backend allow this request?</div></div><div class="denied"><strong>Access denied / conflict</strong>Return a clear error. No record changes. Staff must use an allowed action or refresh a stale record.</div></div>
+<div class="flow-arrow"><small class="success-label">Yes</small>↓</div>
+<div class="flow-row"><div class="flow-node blue"><strong>5. Backend returns or saves the result</strong><p>For a view: return only authorized fields. For a change: validate the current state/evidence and save the result with its audit record. Keep the staff identity, reason and time.</p></div></div>
+<div class="flow-arrow"><small>After a saved change, the relevant apps fetch their allowed updated records</small>↓</div>
+<div class="result-row"><div class="app-results">
+<div class="result-card"><strong>Customer app</strong><p>Own order status, receipt, subscription benefit or communicated issue outcome.</p></div>
+<div class="result-card"><strong>Partner app: Driver</strong><p>Approved module access and the currently assigned route, stops and next action.</p></div>
+<div class="result-card"><strong>Partner app: Workshop</strong><p>Approved module access, assigned orders and the permitted processing action.</p></div>
+</div></div>
+<p class="refs">Backend checks cover staff role, city, record, fields and action. Staff APIs manage the same records the apps read; an admin change is not sent directly into another app. Refs: OPS-001/011/012; API-002/003/010; SEC-003/004.</p>
+</div>
+</section>
+<section id="manage" aria-labelledby="manage-heading">
+<div class="section-head"><h2 id="manage-heading">What admin does for each app</h2><p>Select an area to see what staff can view, the action they send, and what changes for the app user.</p></div>
+<div class="tabs" role="tablist" aria-label="App management areas">
+<button class="tab" id="tab-customers" type="button" role="tab" aria-selected="true" aria-controls="panel-customers" tabindex="0">Customers</button>
+<button class="tab" id="tab-drivers" type="button" role="tab" aria-selected="false" aria-controls="panel-drivers" tabindex="-1">Drivers</button>
+<button class="tab" id="tab-workshops" type="button" role="tab" aria-selected="false" aria-controls="panel-workshops" tabindex="-1">Workshops</button>
+</div>
+<div class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers">
+<div class="panel-grid"><div><span class="tag">Customer management</span><h3>Find the order and open the case</h3><p>Staff searches within their granted city and opens an authorized order or support case. List views mask personal details; sensitive evidence needs case-level access.</p><ul><li>Review order snapshots, custody and available evidence.</li><li>Record and communicate the support/claim outcome.</li><li>Handle authorized privacy requests.</li><li>Payment and entitlement corrections require extra permissions.</li></ul></div><div><h3>Send the allowed staff action</h3><p>Use the staff case or privacy APIs. Financial commands use the separate payment/entitlement surface. The backend validates and audits the action.</p><code class="api">/v1/ops/search<br>/v1/ops/cases/**<br>/v1/ops/privacy-requests/**<br>/v1/ops/queues/payments<br>/v1/ops/entitlements/**</code><p class="pending">Claim policy: D-016 pending. Payment policy: D-013 pending.</p></div></div>
+<div class="example"><h3>Example: a customer reports damaged clothing</h3><div class="story"><div class="story-step"><b>Customer app</b>Customer submits an issue; the backend creates a staff case.</div><div class="story-step"><b>Admin workspace</b>Staff reviews permitted evidence and records an explained decision.</div><div class="story-step"><b>GG backend</b>Checks eligibility, permissions and claim caps; saves the audited result.</div><div class="story-step"><b>Customer app</b>Customer receives the communicated outcome. A completed order stays completed.</div></div></div>
+<p class="refs">Claims: maximum CAD 50 per garment and CAD 200 per order. Approved manual compensation is a separate GG-funded ledger event. Refs: CUS-018; OPS-009/013; CLM-001/002/004/005; PRV-007.</p>
+</div>
+<div class="card tab-panel" id="panel-drivers" role="tabpanel" aria-labelledby="tab-drivers" hidden>
+<div class="panel-grid"><div><span class="tag">Driver management</span><h3>Review accounts and assigned work</h3><p>Partners submit compliance evidence through the approved secure form. Staff reviews it before creating and activating the driver account.</p><ul><li>Review documents/training and approved module grants.</li><li>Create, activate, correct, suspend or deactivate accounts with a reason.</li><li>Inspect routes, assignment failures and driver incidents.</li><li>Before departure: allowed dispatch controls. After departure: audited emergency stop/reassignment only.</li></ul></div><div><h3>Send the allowed staff action</h3><p>The workspace calls the partner or routing staff APIs. The Driver module then reads its approved account access and current assignment from the backend.</p><code class="api">/v1/ops/partners/**<br>/v1/ops/queues/matching<br>/v1/ops/routes/**</code><p class="pending">Partner checklist: D-006 pending. Emergency routing uses the designated staff permission.</p></div></div>
+<div class="example"><h3>Example: activate a new driver</h3><div class="story"><div class="story-step"><b>Secure intake</b>The invited driver submits the required documents outside the app.</div><div class="story-step"><b>Admin workspace</b>Staff reviews evidence and submits account creation/activation with the Driver grant.</div><div class="story-step"><b>GG backend</b>Checks staff access and the onboarding checklist, then saves the approved account.</div><div class="story-step"><b>Partner app</b>The approved driver signs in and gets access to the Driver module.</div></div></div>
+<p class="refs">A driver accepts their own valid route offer. Normal matching does not need staff approval. A route locks when the driver starts; no automatic post-start insertion/reordering. Refs: PAR-001/002; OPS-004/005/008; DRV-005; RTE-009.</p>
+</div>
+<div class="card tab-panel" id="panel-workshops" role="tabpanel" aria-labelledby="tab-workshops" hidden>
+<div class="panel-grid"><div><span class="tag">Workshop management</span><h3>Review accounts and exceptions</h3><p>Staff activates workshops after secure-form review. The Workshop module reads only its assigned orders and operational details.</p><ul><li>Review compliance evidence and activate/suspend the workshop account.</li><li>Inspect matching exceptions after the candidate pool is exhausted.</li><li>Review garment-count mismatches and submit an audited resolution.</li><li>Preserve both original counts and the customer impact record.</li></ul></div><div><h3>Send the allowed staff action</h3><p>Use staff partner and count-discrepancy APIs. “Workshop” is the guide label; the app’s technical API namespace remains <code>/v1/provider/**</code>.</p><code class="api">/v1/ops/partners/**<br>/v1/ops/queues/matching<br>/v1/ops/queues/count-discrepancies<br>POST …/commands/resolve</code><p class="pending">Detailed investigation owner, timing and outcomes: D-014 pending.</p></div></div>
+<div class="example"><h3>Example: driver counts 10, workshop counts 8</h3><div class="story"><div class="story-step"><b>Workshop app</b>Workshop submits its intake count. Backend detects the mismatch and pauses processing.</div><div class="story-step"><b>Admin workspace</b>Staff reviews counts, manifest, QR and evidence; submits confirmed count, reason and customer impact.</div><div class="story-step"><b>GG backend</b>Preserves the originals and saves an audited resolution. Checks required custody evidence.</div><div class="story-step"><b>Workshop app</b>Reads the permitted next step. Processing needs a resolved mismatch and the required custody scan.</div></div></div>
+<p class="refs">The driver’s pickup measurements determine the final charge. A mismatch never creates another automatic charge; a later workshop weight variance does not change billing. Refs: OPS-006; SPV-005/006; ORD-005; DRV-007; PAY-003/010.</p>
+</div>
+</section>
+<section aria-labelledby="other-heading"><div class="section-head"><h2 id="other-heading">Other admin management areas</h2><p>These also use the secured staff APIs and the same permission checks.</p></div><div class="more-grid">
+<div class="card"><h3>Prices, zones &amp; hours</h3><p>Preview and save effective-dated configuration. Existing orders keep their saved rates and rules.</p><code class="api">/v1/ops/config/**</code></div>
+<div class="card"><h3>Payments &amp; subscriptions</h3><p>Review failures/disputes and send approved retries, refunds or entitlement corrections. No raw card details.</p><code class="api">/v1/ops/queues/payments<br>/v1/ops/entitlements/**</code></div>
+<div class="card"><h3>Reports &amp; payouts</h3><p>Read essential metrics, request scoped CSV exports and record manual partner payouts with references.</p><code class="api">/v1/ops/reports/essential-metrics<br>/v1/ops/exports/**<br>/v1/ops/payouts</code></div>
+<div class="card"><h3>Privacy &amp; retention</h3><p>Verify the requester and fulfil permitted access/correction/deletion requests or record lawful retention exceptions.</p><code class="api">/v1/ops/privacy-requests/**</code></div>
+<div class="card"><h3>Audit &amp; data quality</h3><p>Authorized staff searches audit records and reviews daily integrity-check results. History stays append-only.</p><code class="api">/v1/ops/audit<br>/v1/ops/data-quality</code></div>
+<div class="card"><h3>Emergency recovery</h3><p>If the workspace is unavailable, use the documented time-limited break-glass procedure. App automation continues.</p><code class="api">/v1/ops/break-glass</code></div>
+</div></section>
+<section id="permissions" aria-labelledby="permissions-heading"><div class="section-head"><h2 id="permissions-heading">“Admin” does not mean every staff member can do everything</h2><p>The access-control document proposes two staff roles. Their grouping still needs client confirmation; the backend enforces each permission.</p></div>
+<div class="card table-wrap"><table><thead><tr><th>Proposed staff role</th><th>Permitted area</th><th>App connection</th></tr></thead><tbody>
+<tr><td>ops-operator</td><td>Partner review, matching/count/route/support/privacy cases, scoped search and essential metrics.</td><td>Manages authorized customer cases and partner work through staff APIs.</td></tr>
+<tr><td>ops-admin</td><td>Adds configuration, payment/payout commands, entitlement correction, CSV export, audit search and designated break-glass access.</td><td>Approved changes affect the same backend records the apps read. Emergency routing needs its designated permission.</td></tr>
+</tbody></table><p class="refs">Every request also checks city, record, fields and current action/state. A hidden button alone is not access control. Source: docs/architecture/access-control.md, sections 2–6.</p></div>
+<div class="note" style="margin-top:20px"><p><strong>Keep staff identity on every action.</strong> A workspace API client credential identifies the integration. Each action must also carry the authenticated operator’s identity, scopes and revocable session. It does not grant shared staff authority.</p></div>
+</section>
+<section id="technology" aria-labelledby="technology-heading"><div class="section-head"><h2 id="technology-heading">Technology behind the connection</h2><p>These choices come from the backend stack. Vendor recommendations remain options until approved.</p></div><div class="stack-grid">
+<div class="stack-item"><b>Low-code workspace</b>API client for named staff. Retool/Appsmith are register options; selection pending.</div>
+<div class="stack-item"><b>NestJS + TypeScript</b>Node.js 22 backend owns permissions, state and command validation.</div>
+<div class="stack-item"><b>PostgreSQL + Prisma</b>Backend records; Prisma owns schema migrations. Clients use APIs.</div>
+<div class="stack-item"><b>pg-boss + outbox</b>Durable matching, payment, notification and reconciliation jobs.</div>
+<div class="stack-item"><b>Identity provider</b>Staff MFA and short-lived sessions. Customer/partner method remains D-004.</div>
+<div class="stack-item"><b>OpenAPI 3.1.0</b>Tooling target for the hand-authored shared contract. Listed paths are planning paths.</div>
+<div class="stack-item"><b>Python + OR-Tools</b>Private FastAPI route solver called by backend jobs; separate from navigation.</div>
+<div class="stack-item"><b>Private media</b>Encrypted storage; backend-authorized signed URLs for uploads and viewing.</div>
+</div>
+<details><summary>All third-party APIs and services from the Integration Register</summary><div class="reference-content"><p>The named providers are register recommendations. SetupIntents and PaymentIntents are Stripe examples of provider-neutral operations. Costs in that document are indicative; this guide does not quote current prices.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>API/service</th>
+<th>Register's named options</th>
+<th>Connection / purpose</th>
+<th>Decision / source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Places Autocomplete + Geocoding</td>
+<td>Google Maps Platform / Mapbox</td>
+<td>Address-entry aid; backend geocodes/verifies addresses and checks configured zones. Any app SDK key must be publicly usable and restricted; privileged secrets remain server-side</td>
+<td>D-001/D-002; CUS-002/003</td>
+</tr>
+<tr>
+<td>Distance Matrix</td>
+<td>Google Maps Platform / self-hosted OSRM</td>
+<td>Backend gets driving times/distances for matching and routes. Solver receives versioned matrix inputs, without directly calling the vendor</td>
+<td>D-009/D-010; MAT-002; RTE-004/007</td>
+</tr>
+<tr>
+<td>SetupIntents / Customer Vault</td>
+<td>Stripe Canada / Moneris / Square</td>
+<td>Hosted/tokenized capture; backend validates/saves card at booking without charging. GG servers never handle raw PAN/CVV</td>
+<td>D-005; PAY-001/002/003</td>
+</tr>
+<tr>
+<td>PaymentIntents / final-charge API</td>
+<td>Stripe Canada example</td>
+<td>Price uses saved rates and driver pickup measurements. Ledger first, then one final charge with an order-specific retry key</td>
+<td>D-005; PAY-003/005/007; API-003</td>
+</tr>
+<tr>
+<td>Billing / Hosted Customer Portal</td>
+<td>Stripe Canada example</td>
+<td>Hosted purchase/manage page for CAD 13.99/month subscription. Backend stores active/inactive entitlement and references/timestamps</td>
+<td>D-005/D-015; CUS-004; SUB-001 to SUB-009</td>
+</tr>
+<tr>
+<td>Refunds API</td>
+<td>Stripe Canada example</td>
+<td>Authorized staff refund/correction through gateway adapter with linked ledger records. Claim payout method requires separate confirmation</td>
+<td>D-005/D-013/D-016; PAY-010; CLM-004/005</td>
+</tr>
+<tr>
+<td>Gateway Webhooks</td>
+<td>Stripe Canada example</td>
+<td>Gateway calls GG payment/subscription webhook routes; backend verifies, stores once and processes in a durable job</td>
+<td>PAY-008; SUB-006; API-006</td>
+</tr>
+<tr>
+<td>Push Notifications</td>
+<td>APNs + FCM; OneSignal or direct FCM</td>
+<td>Outbox/jobs deliver minimal push; apps fetch authenticated details. In-app inbox remains available during push delays</td>
+<td>MSG-001 to MSG-004; MAT-003; SPV-002</td>
+</tr>
+<tr>
+<td>Object Storage + pre-signed URLs</td>
+<td>AWS S3 / Supabase Storage / GCS</td>
+<td>Backend grants scoped short-lived upload/download access to private encrypted photos, proof and evidence</td>
+<td>SEC-007; CUS-006; DRV-012; D-001/D-019</td>
+</tr>
+<tr>
+<td>Secure Partner Intake Forms</td>
+<td>Typeform / Fillout / JotForm</td>
+<td>Evidence intake outside apps; staff reviews authorized records. Secure submission webhook where integrated</td>
+<td>D-006/D-019; PAR-002; OPS-004</td>
+</tr>
+<tr>
+<td>Low-Code Operations Workspace</td>
+<td>Retool / Appsmith</td>
+<td>Browser staff console calls /v1/ops/** and documented event feeds; individual identity/scopes on every action</td>
+<td>Vendor pending; OPS-001 to OPS-014; API-010</td>
+</tr>
+</tbody>
+</table></div>
+<p>The register groups claim payouts with Refunds API. CLM-005 requires a manually issued claim payout to be a <strong>separate GG-funded ledger event</strong>. Do not assume a refund endpoint supports every claim recipient or an amount above the original payment. Payout method remains D-016 pending.</p></div></details>
+<details><summary>Other integration boundaries: identity, secrets, monitoring and navigation</summary><div class="reference-content"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>Connection and ownership</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Identity provider</td>
+<td>User sessions; staff MFA at IdP; backend checks resource/role access</td>
+<td>Customer/partner method D-004; vendor not fixed</td>
+</tr>
+<tr>
+<td>Managed secret store</td>
+<td>Backend infrastructure obtains secrets; central rotation/revocation</td>
+<td>ARC-004/SEC-008; vendor not fixed</td>
+</tr>
+<tr>
+<td>Observability/monitoring</td>
+<td>Logs/metrics/correlation IDs; authenticated monitoring callback into staff alerts</td>
+<td>NFR-009/SEC-009; vendor not fixed</td>
+</tr>
+<tr>
+<td>Managed PostgreSQL/backups</td>
+<td>Backend alone accesses domain records; Prisma migrations; recovery/restore evidence</td>
+<td>PostgreSQL locked; host not fixed</td>
+</tr>
+<tr>
+<td>Python/FastAPI solver</td>
+<td>pg-boss job calls private internal POST /v1/solve; self-hosted OR-Tools</td>
+<td>Internal service, not an external optimization API</td>
+</tr>
+<tr>
+<td>Driver navigation app</td>
+<td>Stop link opens approved Google Maps/Apple Maps</td>
+<td>Separate from backend travel-matrix API</td>
+</tr>
+<tr>
+<td>In-app inbox</td>
+<td>GG backend stores and serves notification records</td>
+<td>GG-owned API, not a third-party service</td>
+</tr>
+</tbody>
+</table></div>
+<p>OR-Tools builds the ordered trip. The matrix provider supplies journey times/distances. The navigation app guides the driver to the next stop.</p>
+<p>The pilot excludes masked calling providers, transactional SMS/email, in-app turn-by-turn navigation, native store subscription billing for these physical services, and a product-analytics SDK/warehouse. Driver direct phone calls use restricted, audited real-number access during the assigned active stop. No LLM agent belongs to the locked stack.</p></div></details>
+<details><summary>Complete locked technology stack</summary><div class="reference-content"><div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+<th>Rationale (spec IDs)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Language / runtime</td>
+<td>TypeScript (strict) on Node.js 22 LTS (pin the major at Phase 1 scaffold)</td>
+<td>Two-person team already fluent in TS; both apps are TS. Static checks gate merges (NFR-010).</td>
+</tr>
+<tr>
+<td>Framework</td>
+<td>NestJS, modular monolith</td>
+<td>Module boundaries own their rules and data access even when deployed together (ARC-001); the pilot prefers few deployable units and discourages microservices (ARC-008). Deployable units: API+worker monolith, route-solver worker, database, object storage.</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>PostgreSQL, one logical database (PostGIS where geospatial queries need it)</td>
+<td>Spec baseline: managed relational database with transactional constraints, geospatial support where needed, migrations, point-in-time recovery (ARC section; NFR-007). Relational constraints enforce the one-active-assignment and idempotency invariants (DAT-005).</td>
+</tr>
+<tr>
+<td>Schema &amp; migrations</td>
+<td>Prisma - single schema-evolution owner</td>
+<td>One mechanism owns production schema evolution; fresh install and every upgrade path are specified and tested (DAT-008). No <code>synchronize</code>-style auto-creation anywhere outside throwaway local dev.</td>
+</tr>
+<tr>
+<td>Background jobs</td>
+<td>pg-boss (Postgres-backed queues)</td>
+<td>Durable jobs with retry, backoff, dead-letter, idempotency, and correlation (ARC-005, ORD-009) without adding a broker deployable (ARC-008). Drives offer timeouts, matching runs, route solves, notifications, webhooks, reconciliation, exports, retention.</td>
+</tr>
+<tr>
+<td>Event outbox</td>
+<td>Outbox table in the same database, drained by pg-boss jobs</td>
+<td>Notifications and integration side-effects derive from durable domain events/outbox records, deduplicated and retryable (MSG-003); state mutation and outbox write commit in one transaction.</td>
+</tr>
+<tr>
+<td>Route solver</td>
+<td>Isolated Python worker running Google OR-Tools</td>
+<td>Spec names a separately deployable open-source solver worker; OR-Tools is the recommended baseline (RTE-002 - SHOULD: version, license, maintenance plan, and benchmark evidence are required deliverables). Invoked asynchronously via jobs; 60-second solve budget is not a request-path concern (NFR-003). Inputs/outputs deterministic and versioned (RTE-007).</td>
+</tr>
+<tr>
+<td>Travel-time matrix</td>
+<td>Pluggable adapter behind the solver</td>
+<td>Matrix provider is swappable (RTE-004): self-hosted OSRM vs commercial maps API <code>[PENDING: D-009]</code>, data/service costs priced separately. Solver code never calls a provider directly.</td>
+</tr>
+<tr>
+<td>API contract</td>
+<td>Hand-authored OpenAPI 3.x, versioned, in this repo</td>
+<td>Single contract owner for every mobile and operations endpoint - schemas, examples, security, errors, pagination, idempotency behavior (API-001). Apps derive types from it; they never invent shapes.</td>
+</tr>
+<tr>
+<td>API style</td>
+<td>REST, one structured problem format, idempotency keys on mutations</td>
+<td>Errors: machine code, safe message, correlation ID, field violations, retry guidance (API-004). Idempotency keys on create/payment/assignment/scan/state/staff mutations (API-003). Bounded pagination with deterministic sorting (API-005). Explicit versioning with deprecation window (API-007).</td>
+</tr>
+<tr>
+<td>Payments</td>
+<td>Provider-neutral gateway adapter <code>[PENDING: D-005]</code></td>
+<td>Domain code sees only payment-method setup/validation, one final charge, refund/correction, status, and signed-webhook operations (PAY-001). Replacing the gateway must not touch order, pricing, subscription, or ledger rules (PAY-013). Tokenized/hosted components only - no PAN/CVV ever (PAY-002). Webhooks signature-verified, deduplicated, processed asynchronously (PAY-008, API-006).</td>
+</tr>
+<tr>
+<td>Identity &amp; auth</td>
+<td>Swappable identity boundary <code>[PENDING: D-004]</code></td>
+<td>Final customer/partner auth method is a discovery decision (CUS-001); the customer app implies OTP-style verification. The RBAC/identity boundary must let the provider change without touching domain authorization. Sessions: rotation, revocation, suspicious-login handling (SEC-003). Staff sign-in uses short-lived tokens issued by the identity provider, with MFA enforced at the IdP (SEC-003, OPS-001).</td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td>APNs/FCM push + in-app inbox, outbox-driven</td>
+<td>Push and inbox only - no SMS, no email (MSG-001). Push payloads carry minimal non-sensitive text plus a deep link; detail is fetched authenticated (MSG-002).</td>
+</tr>
+<tr>
+<td>Media storage</td>
+<td>Private encrypted object storage, signed time-limited URLs</td>
+<td>Garment catalog, delivery proof, and issue/claim evidence stay private with time-limited access (COC-007, SEC-007).</td>
+</tr>
+<tr>
+<td>Ops workspace access</td>
+<td>External low-code tool calling secured staff-scope APIs</td>
+<td>The workspace consumes documented APIs and event feeds only; direct database connections and embedded production credentials are prohibited (OPS-012, API-010). It holds exactly one API client credential - never privileged database credentials. Tool selection is a separate pending task, not a stack decision here.</td>
+</tr>
+<tr>
+<td>Rate limiting</td>
+<td>Per-instance in-memory fixed-window counters</td>
+<td>The pilot runs a single API instance; per-use-case limits per API-008 (anonymous, customer, partner, staff, media-upload, predefined-message, customer-phone-access/direct-call, issue-form, webhook). Deliberate scaling seam: move to a shared store when a second instance deploys.</td>
+</tr>
+<tr>
+<td>Observability</td>
+<td>Structured logs, metrics, correlation IDs on every request/job/webhook/solve</td>
+<td>NFR-009, with payment credentials, identity documents, tokens, customer phone numbers, and message/photo content excluded from logs by default (SEC-009).</td>
+</tr>
+<tr>
+<td>Analytics</td>
+<td>No product-analytics SDK or warehouse in the pilot</td>
+<td>Essential operational events only (ANA-002, ANA-005): any analytics/crash SDK is inventoried, minimized, consented where required, and prevented from capturing sensitive screen/input content. SDKs are app-side; the backend equivalent is log/observability data minimization (SEC-009).</td>
+</tr>
+<tr>
+<td>Secrets</td>
+<td>Managed secret store</td>
+<td>Never in source control, app bundles, low-code formulas, issue trackers, or logs (ARC-004); generation, rotation, revocation through the managed system (SEC-008).</td>
+</tr>
+</tbody>
+</table></div></div></details>
+<details><summary>All planned API calls: Customer, Partner, Driver, Workshop, Staff and webhooks</summary><div class="reference-content"><p>These are representative paths from the API plan. The final OpenAPI contract defines exact requests/responses. Ellipsis is shorthand, not a literal URL.</p><h3>4.1 Customer app</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Endpoint</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Controlling IDs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>POST /v1/auth/customer/register</code></td>
+<td style="text-align: left;">Account creation: name, email, phone, home address</td>
+<td style="text-align: left;">CUS-001; <code>[PENDING: D-004]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/auth/verify</code></td>
+<td style="text-align: left;">Phone/email verification</td>
+<td style="text-align: left;">CUS-002; <code>[PENDING: D-004]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET/PATCH /v1/customer/profile</code></td>
+<td style="text-align: left;">Profile view/update</td>
+<td style="text-align: left;">CUS-019</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>PUT /v1/customer/address</code> · <code>POST /v1/customer/address/verify</code></td>
+<td style="text-align: left;">Set the one verified home address; validate/geocode</td>
+<td style="text-align: left;">CUS-002</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/serviceability</code></td>
+<td style="text-align: left;">Zone check for the verified address; non-destructive explanation</td>
+<td style="text-align: left;">CUS-003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/serviceability/waitlist</code></td>
+<td style="text-align: left;">Waitlist/contact option when outside a zone</td>
+<td style="text-align: left;">CUS-003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/catalog/services</code></td>
+<td style="text-align: left;">Three services, inclusions, minimum estimate, pricing basis</td>
+<td style="text-align: left;">CUS-005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/availability/slots</code></td>
+<td style="text-align: left;">Only capacity-valid four-hour windows meeting the 48-hour promise</td>
+<td style="text-align: left;">CUS-007</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/orders/drafts</code> · <code>GET/PATCH /v1/orders/drafts/{id}</code></td>
+<td style="text-align: left;">Server-side incomplete-order draft</td>
+<td style="text-align: left;">CUS-020</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/media/upload-urls</code></td>
+<td style="text-align: left;">Signed upload URLs for ironing garment photos</td>
+<td style="text-align: left;">CUS-006, SEC-007</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST/DELETE /v1/orders/drafts/{id}/garments/{gid}</code> · <code>PATCH …/caption</code></td>
+<td style="text-align: left;">Create/retake/remove/caption one photo record per ironing garment</td>
+<td style="text-align: left;">CUS-006</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/orders/quote</code></td>
+<td style="text-align: left;">Tax-inclusive estimated minimum, included tax, delivery fee or entitlement waiver, final-charge explanation</td>
+<td style="text-align: left;">CUS-010</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/payment-methods/setup-sessions</code></td>
+<td style="text-align: left;">Gateway tokenized/hosted setup; validate and save without charging</td>
+<td style="text-align: left;">CUS-011, PAY-002/003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET/DELETE /v1/payment-methods</code></td>
+<td style="text-align: left;">Payment-method management through the gateway</td>
+<td style="text-align: left;">CUS-019</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/orders</code></td>
+<td style="text-align: left;">Resource-creation shape (§2) performing SubmitOrder: place order; accepts versioned consents; creates immutable snapshots; validates payment method without charging</td>
+<td style="text-align: left;">CUS-012, PAY-004/005, DAT-003, API-003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/orders/{id}/commands/cancel</code></td>
+<td style="text-align: left;">Free self-service cancellation until collection completes; blocked afterward with support direction</td>
+<td style="text-align: left;">CUS-013, ORD-004</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/orders</code> · <code>GET /v1/orders/{id}</code></td>
+<td style="text-align: left;">History/detail: service, timestamps, price breakdown, corrections, receipt ref, delivery-proof availability, issue references; active view shows window, next action, and only the three milestones</td>
+<td style="text-align: left;">CUS-014, CUS-017, MSG-004, ORD-003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/orders/{id}/receipt</code></td>
+<td style="text-align: left;">Final itemized receipt plus the legally required invoice document (included-tax display where legally required): calculation, delivery benefit/fee, included tax, final charge, later refund/correction, total; PDF document generation is assigned to the Routing and finance phase of the delivery plan (see <code>specs/roadmap.md</code>)</td>
+<td style="text-align: left;">PAY-011; invoice rules <code>[PENDING: D-003]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/orders/{id}/delivery-proof</code></td>
+<td style="text-align: left;">Delivery proof for the own order via time-limited media access</td>
+<td style="text-align: left;">COC-007, DRV-012</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/subscription/entitlement</code></td>
+<td style="text-align: left;">Current active/inactive entitlement and CAD 13.99 price; benefit text states unlimited standard pickup-and-return delivery and must not imply laundry processing is included</td>
+<td style="text-align: left;">SUB-003, SUB-005, CUS-004</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/subscription/hosted-page</code></td>
+<td style="text-align: left;">Link/session to the gateway-hosted CAD 13.99 purchase or management page</td>
+<td style="text-align: left;">SUB-001, SUB-005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/notifications</code> · <code>POST /v1/notifications/{id}/commands/mark-read</code></td>
+<td style="text-align: left;">In-app inbox</td>
+<td style="text-align: left;">MSG-001, CUS-016</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/devices</code> · <code>DELETE /v1/devices/{id}</code></td>
+<td style="text-align: left;">Push token registration</td>
+<td style="text-align: left;">MSG-001</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/orders/{id}/messages</code></td>
+<td style="text-align: left;">Predefined driver messages on the order</td>
+<td style="text-align: left;">CUS-015, MSG-008</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/orders/{id}/issues</code></td>
+<td style="text-align: left;">Report-an-issue: category, description, optional evidence; creates a staff case</td>
+<td style="text-align: left;">CUS-018, CLM-001</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/legal/documents</code></td>
+<td style="text-align: left;">Current Terms/Privacy/disclaimer versions and links, plus the publication surface for the claims policy (filing window, eligibility/exclusions, valuation, appeal, payout method, response SLA) <code>[PENDING: D-016]</code></td>
+<td style="text-align: left;">PRV-006, CLM-006</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/privacy/requests</code></td>
+<td style="text-align: left;">Access/correction/deletion requests</td>
+<td style="text-align: left;">PRV-007, CUS-019</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/account/commands/delete</code></td>
+<td style="text-align: left;">Initiate complete account deletion (store requirement)</td>
+<td style="text-align: left;">PRV-011, CUS-019</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.2 Partner app - shared</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Endpoint</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Controlling IDs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>POST /v1/auth/partner/sign-in</code></td>
+<td style="text-align: left;">First sign-in for staff-created approved accounts; suspended/inactive states</td>
+<td style="text-align: left;">PAR-002</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/partner/modules</code></td>
+<td style="text-align: left;">Approved module set (drives module isolation; backend still enforces)</td>
+<td style="text-align: left;">PAR-001, PAR-004</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET/PATCH /v1/partner/profile</code></td>
+<td style="text-align: left;">Shared profile, notification, privacy controls</td>
+<td style="text-align: left;">PAR-003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/partner/history</code></td>
+<td style="text-align: left;">Completed-work history</td>
+<td style="text-align: left;">PAR-003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/partner/notifications</code> · <code>POST /v1/partner/devices</code></td>
+<td style="text-align: left;">Inbox + push registration</td>
+<td style="text-align: left;">MSG-001</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/partner/privacy/requests</code> · <code>POST /v1/partner/account/commands/delete</code></td>
+<td style="text-align: left;">Privacy controls and deletion initiation</td>
+<td style="text-align: left;">PAR-003, PRV-007/011</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.3 Partner app - Driver module</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Endpoint</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Controlling IDs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>PUT /v1/driver/availability</code></td>
+<td style="text-align: left;">Working status, availability windows, start location/zone, vehicle capacity</td>
+<td style="text-align: left;">DRV-001</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/driver/route-offers</code></td>
+<td style="text-align: left;">Offers with window, estimated duration/distance, stop count, capacity demand, estimated earnings</td>
+<td style="text-align: left;">DRV-002/003, MAT-006, RTE-008</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/route-offers/{id}/commands/accept</code> · <code>…/decline</code></td>
+<td style="text-align: left;">Exclusive offer response; transactional concurrency so late responses cannot overwrite</td>
+<td style="text-align: left;">MAT-006/007</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/driver/routes/active</code></td>
+<td style="text-align: left;">Accepted route + minimum stop data for the offline-readable cache</td>
+<td style="text-align: left;">DRV-004, PAR-005, NFR-006</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/routes/{id}/commands/start</code></td>
+<td style="text-align: left;">Starts and locks the route; emits customer Route started milestone</td>
+<td style="text-align: left;">DRV-005/013, RTE-009</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/driver/routes/{id}/stops</code></td>
+<td style="text-align: left;">Ordered stop list (collections, provider drop-offs/pickups, deliveries) with navigation deep links</td>
+<td style="text-align: left;">DRV-004, RTE-012</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/commands/mark-approaching</code></td>
+<td style="text-align: left;">Driver approaching milestone</td>
+<td style="text-align: left;">DRV-013, MSG-004</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/commands/record-manifest</code></td>
+<td style="text-align: left;">Bag opened as authorized; garment count, authoritative pickup weight, ironing-photo reconciliation, exceptions, bag location, pickup-instruction outcome</td>
+<td style="text-align: left;">DRV-006/007/009</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/orders/{id}/commands/activate-label</code></td>
+<td style="text-align: left;">Generate/retrieve order QR, attach, scan, activate custody record</td>
+<td style="text-align: left;">DRV-008, COC-003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/commands/complete-collection</code></td>
+<td style="text-align: left;">Completes collection only when manifest/weight/count/instruction/QR are valid or an incident is recorded; triggers final price calculation</td>
+<td style="text-align: left;">DRV-009; PAY stage rules</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/commands/complete-provider-dropoff</code></td>
+<td style="text-align: left;">Outbound handoff; complete only when provider scan is acknowledged</td>
+<td style="text-align: left;">DRV-010</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/commands/confirm-return-pickup</code></td>
+<td style="text-align: left;">Scan the same reprinted QR; take custody of the clean bag</td>
+<td style="text-align: left;">DRV-011</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/commands/complete-delivery</code></td>
+<td style="text-align: left;">Delivery photo, GPS, timestamp, stop completion; durably stored before DELIVERED</td>
+<td style="text-align: left;">DRV-012, ORD-007</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/incidents</code></td>
+<td style="text-align: left;">Inaccessible pickup, missing bag, prohibited item, customer contact failure, vehicle issue, route delay, QR failure, delivery failure; category <code>contact_failure</code> opens the staff-mediated SupportCase and ends the customer-contact window</td>
+<td style="text-align: left;">DRV-016, MSG-009</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/messages</code></td>
+<td style="text-align: left;">Configured predefined order/leg messages only (approaching, access problem, bag not found, contact staff); sending a message never creates a staff case - the "contact staff" template is the customer-visible notice that the driver has escalated to staff via a <code>contact_failure</code> incident</td>
+<td style="text-align: left;">MSG-005, MSG-009, CUS-015</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/customer-phone/commands/reveal</code></td>
+<td style="text-align: left;">Time-limited reveal of the customer's real phone number for the currently assigned active stop; audited; revoked on completion/reassignment/cancellation/expiry</td>
+<td style="text-align: left;">DRV-014, MSG-006/007</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/driver/stops/{id}/customer-phone/commands/log-call</code></td>
+<td style="text-align: left;">Records dialer-launch/direct-call audit metadata (no audio/content)</td>
+<td style="text-align: left;">MSG-007/008</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/driver/earnings</code></td>
+<td style="text-align: left;">Accepted earning estimates and recorded summaries (no payout dashboard)</td>
+<td style="text-align: left;">DRV-015</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/scans</code> (Cmd)</td>
+<td style="text-align: left;">Generic QR scan resolution; authorizes actor against assigned order/route before returning operational data</td>
+<td style="text-align: left;">COC-002, SEC-006</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/media/upload-urls</code></td>
+<td style="text-align: left;">Signed URLs for delivery proof and incident evidence; retry-safe</td>
+<td style="text-align: left;">COC-007/009, SEC-007</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.4 Partner app - Service Provider module</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Endpoint</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Controlling IDs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>PUT /v1/provider/capability</code></td>
+<td style="text-align: left;">Services offered (folding always included), service zone/travel limit</td>
+<td style="text-align: left;">SPV-001</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>PUT /v1/provider/availability</code></td>
+<td style="text-align: left;">Available/unavailable toggle; maximum daily capacity as order count or canonical weight per city config <code>[PENDING: D-008]</code></td>
+<td style="text-align: left;">SPV-001</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/provider/offers</code></td>
+<td style="text-align: left;">Assignment offers: service, estimated batch size, ironing count/photos, target readiness, estimated payout, response timeout</td>
+<td style="text-align: left;">SPV-002</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/provider/offers/{id}/commands/accept</code> · <code>…/decline</code></td>
+<td style="text-align: left;">Accept reserves capacity atomically; decline/timeout releases</td>
+<td style="text-align: left;">SPV-003, MAT-003/008</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/provider/orders/{id}/commands/confirm-intake</code></td>
+<td style="text-align: left;">Scan order QR, verify garment count, optional operational weight</td>
+<td style="text-align: left;">SPV-004</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/provider/orders/{id}/commands/raise-discrepancy</code></td>
+<td style="text-align: left;">Count mismatch pauses the order in COUNT_DISCREPANCY</td>
+<td style="text-align: left;">SPV-005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/provider/orders/{id}/commands/record-weight</code></td>
+<td style="text-align: left;">Operational weight variance; logged, never alters billing weight or blocks processing alone</td>
+<td style="text-align: left;">SPV-006, DRV-007</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/provider/orders/{id}/commands/start-processing</code> · <code>…/complete-quality-check</code></td>
+<td style="text-align: left;">Progress through received/processing/quality check with timestamps</td>
+<td style="text-align: left;">SPV-007, ORD-005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/provider/orders/{id}/commands/record-reprint</code></td>
+<td style="text-align: left;">Reprint the same canonical QR on the clean bag; record the reprint event</td>
+<td style="text-align: left;">SPV-008, COC-003/004</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/provider/orders/{id}/label</code></td>
+<td style="text-align: left;">Label payload for reprint (same identity)</td>
+<td style="text-align: left;">COC-003/004</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/provider/orders/{id}/commands/mark-ready</code></td>
+<td style="text-align: left;">READY_FOR_RETURN only after completion, QC, repack, and reprint recorded</td>
+<td style="text-align: left;">SPV-007/008, ORD-006</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /v1/provider/incidents</code></td>
+<td style="text-align: left;">Equipment failure / inability to complete</td>
+<td style="text-align: left;">SPV-012</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GET /v1/provider/earnings</code></td>
+<td style="text-align: left;">Estimated/recorded earnings (no payout dashboard)</td>
+<td style="text-align: left;">SPV-011</td>
+</tr>
+</tbody>
+</table></div>
+<p>Provider responses never include customer phone, payment data, driver-contact events, or unnecessary customer address (SPV-010, PRV-003) - enforced by field-level serialization (see <code>docs/architecture/access-control.md</code>).</p>
+<h3>4.5 Operations (low-code workspace)</h3>
+<p>All under <code>/v1/ops/**</code> with separate staff scopes; every view or mutation of sensitive records is authorized server-side, and high-risk actions capture before/after values, reason, actor, and correlation ID (OPS-011, OPS-012).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Endpoint group</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Controlling IDs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/config/**</code> (cities, zones, calendars, slots, services, pricing, tax, payout rates, timeouts, routing params, notification templates, feature flags)</td>
+<td style="text-align: left;">Effective-dated configuration without deployment; validated, previewable, audited</td>
+<td style="text-align: left;">OPS-002/003, CFG-001…005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/partners/**</code></td>
+<td style="text-align: left;">Review secure-form submissions/evidence/training; create/activate/correct/reject/suspend/deactivate accounts with reason</td>
+<td style="text-align: left;">OPS-004, PAR-002</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/queues/matching</code></td>
+<td style="text-align: left;">Matching-exhausted queue with exclusion reasons and prior offers; manual re-run/override with recorded reason</td>
+<td style="text-align: left;">OPS-005, MAT-005/010</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/queues/count-discrepancies</code> · <code>POST …/commands/resolve</code></td>
+<td style="text-align: left;">Record confirmed count, reason, evidence, customer impact, resolver, timestamp; originals immutable</td>
+<td style="text-align: left;">OPS-006, SPV-005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/queues/payments</code> · <code>POST …/commands/retry</code> / <code>…/refund</code> / <code>…/correct</code> / <code>…/write-off</code></td>
+<td style="text-align: left;">Payment-method validation, final-charge, refund/correction, dispute, reconciliation exceptions; backend-approved commands only</td>
+<td style="text-align: left;">OPS-007, PAY-009/010; policy <code>[PENDING: D-013]</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/routes/**</code></td>
+<td style="text-align: left;">Pre-departure inspect/regenerate/lock/offer/unassign/cancel; post-departure audited emergency stop/reassignment only</td>
+<td style="text-align: left;">OPS-008, RTE-010, DRV-005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/cases/**</code></td>
+<td style="text-align: left;">Issue intake, evidence gathering, claim decision with caps (CAD 50 per garment, CAD 200 combined per order), payout reference</td>
+<td style="text-align: left;">OPS-009, CLM-002/004/005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/entitlements/**</code></td>
+<td style="text-align: left;">Inspect and correct subscription entitlement exceptions via audited commands</td>
+<td style="text-align: left;">SUB-008</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/privacy-requests/**</code></td>
+<td style="text-align: left;">Verify requester; fulfill or record lawful retention exception</td>
+<td style="text-align: left;">PRV-007/008; Operations Queues</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/search</code></td>
+<td style="text-align: left;">Search by order, customer, partner, route, QR, payment reference, date, status, exception</td>
+<td style="text-align: left;">OPS-010, NFR-014</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/reports/essential-metrics</code></td>
+<td style="text-align: left;">One simple essential-metrics report; KPI formulas, inclusion/exclusion rules, time zone, late-window rules, and final business targets are approved before the pilot report is accepted <code>[PENDING: D-021]</code></td>
+<td style="text-align: left;">OPS-010, ANA-003, ANA-004</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/exports/**</code></td>
+<td style="text-align: left;">Minimally necessary operational/financial CSVs, incl. weekly payout export; export jobs for large datasets</td>
+<td style="text-align: left;">OPS-010, ANA-006, FIN-005, API-005</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/payouts</code> · <code>POST …/commands/record</code></td>
+<td style="text-align: left;">Record manual payout: date, method, reference, included entries, total, operator</td>
+<td style="text-align: left;">FIN-005/006</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/audit</code></td>
+<td style="text-align: left;">Audit search</td>
+<td style="text-align: left;">OPS-010/011</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/break-glass</code></td>
+<td style="text-align: left;">Initiate/time-box break-glass access per documented procedure</td>
+<td style="text-align: left;">OPS-014</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>/v1/ops/data-quality</code></td>
+<td style="text-align: left;">Results of daily automated integrity checks</td>
+<td style="text-align: left;">NFR-013</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.6 Webhooks (inbound)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align: left;">Endpoint</th>
+<th style="text-align: left;">Purpose</th>
+<th style="text-align: left;">Controlling IDs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>POST /webhooks/payments/{provider}</code></td>
+<td style="text-align: left;">Charge/settlement/refund/dispute events; signature-verified, deduplicated, async processing, reconciled against internal intent/status; order not assumed</td>
+<td style="text-align: left;">PAY-008, API-006</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /webhooks/subscriptions/{provider}</code></td>
+<td style="text-align: left;">Activate/deactivate entitlement; unsupported/ambiguous events go to a staff reconciliation queue</td>
+<td style="text-align: left;">SUB-006</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /webhooks/push/{provider}</code></td>
+<td style="text-align: left;">Delivery feedback/token invalidation where the provider offers it</td>
+<td style="text-align: left;">MSG-003</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /webhooks/partner-forms/{provider}</code></td>
+<td style="text-align: left;">Secure-form submission events where integrated <code>[PENDING: D-006]</code></td>
+<td style="text-align: left;">OPS-004, PAR-002</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>POST /webhooks/monitoring</code></td>
+<td style="text-align: left;">Monitoring alerts into staff alerting</td>
+<td style="text-align: left;">Staff audience table; NFR-009</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4.7 Internal jobs and automation (not public HTTP)</h3>
+<p>Durable jobs (pg-boss) invoke the same command boundary as HTTP; they carry service identities and correlation IDs (ARC-005, ORD-009). Scheduled match runs and offer timeout sweeps (MAT-002/004, <code>[PENDING: D-007]</code>); checkout slot-hold expiry; route-solve dispatch and result ingestion (RTE-001/007/013, NFR-003); final-charge execution after collection (PAY-003/007); reconciliation (PAY-008); notification outbox dispatch with dedup (MSG-003); capacity-reservation reconciliation (MAT-008); weekly payout export generation (FIN-005); daily data-integrity checks (NFR-013); retention/deletion execution (PRV-007/008).</p></div></details>
+</section>
+<section class="sources" aria-labelledby="sources-heading"><h2 id="sources-heading">Source references</h2><p>This page explains the planned admin connection. The examples show how permitted staff actions work; they do not execute live account or financial changes.</p><ul><li>garments-grid-api/specs/tech-stack.md</li><li>garments-grid-api/docs/architecture/api-design.md</li><li>garments-grid-api/docs/architecture/access-control.md</li><li>garments-grid-api/docs/architecture/integrations.md</li><li>Garments Grid — Third-Party API &amp; Integration Register.docx</li><li>Garments Grid v1.1 pilot requirements, checked by requirement ID.</li></ul><p>The full technology stack, integration register and planned API inventory are included on this page.</p></section>
+</main>
+<footer><div class="wrap"><p><strong>One staff workspace. One authoritative backend.</strong> Each app reads only the records and fields allowed for its own user.</p></div></footer>
+<script>
+(() => {
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  function selectTab(tab, focus = false) {
+    tabs.forEach(item => {
+      const selected = item === tab;
+      item.setAttribute('aria-selected', String(selected));
+      item.tabIndex = selected ? 0 : -1;
+      document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+    });
+    if (focus) tab.focus();
+  }
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectTab(tab));
+    tab.addEventListener('keydown', event => {
+      let next;
+      if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+      else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = tabs.length - 1;
+      else return;
+      event.preventDefault();
+      selectTab(tabs[next], true);
+    });
+  });
+})();
+</script>
+</body>
+</html>
